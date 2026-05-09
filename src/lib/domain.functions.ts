@@ -93,7 +93,7 @@ export const verifyDomainDns = createServerFn({ method: "POST" })
     const apexARecordIsMissing = aErrors.some((message) => message.startsWith(`A record for ${domain} `));
     if (apexARecordIsMissing) return { ok: false, error: aErrors.join(" "), checks } as const;
 
-    // DNS can be correct before the hosting edge and SSL are ready; avoid showing a broken live link.
+    // DNS can be correct before the hosting edge attaches the domain; keep HTTPS as an informational check.
     try {
       const r = await fetch(`https://${domain}`, { method: "GET", redirect: "manual" });
       const httpsOk = r.status >= 200 && r.status < 400;
@@ -103,17 +103,10 @@ export const verifyDomainDns = createServerFn({ method: "POST" })
         host: domain,
         expected: "HTTP 200-399",
         found: `HTTP ${r.status}`,
-        status: httpsOk ? (aErrors.length ? "warning" : "success") : "error",
+        status: httpsOk ? "success" : "warning",
         message: httpsOk ? "Site opens successfully" : "Site is not live over HTTPS yet",
         checkedAt,
       });
-      if (r.status < 200 || r.status >= 400) {
-        return {
-          ok: false,
-          error: `${aErrors.join(" ")}${aErrors.length ? " " : ""}DNS records are found, but HTTPS for ${domain} is not live yet. Retry in a few minutes after hosting and SSL finish setting up. Current status: ${r.status}`,
-          checks,
-        } as const;
-      }
     } catch {
       checks.push({
         key: "https-live",
@@ -121,18 +114,14 @@ export const verifyDomainDns = createServerFn({ method: "POST" })
         host: domain,
         expected: "Reachable HTTPS site",
         found: "not reachable",
-        status: "error",
-        message: "Site is not reachable over HTTPS yet",
+        status: "warning",
+        message: "Site will attach after DNS ownership is verified",
         checkedAt,
       });
-      return {
-        ok: false,
-        error: `${aErrors.join(" ")}${aErrors.length ? " " : ""}DNS records are found, but HTTPS for ${domain} is not reachable yet. Retry in a few minutes after propagation and SSL setup finish.`,
-        checks,
-      } as const;
     }
 
-    if (aErrors.length) return { ok: false, error: aErrors.join(" "), checks } as const;
+    const missingRequiredRecords = aErrors.filter((message) => message.startsWith(`A record for ${domain} `));
+    if (missingRequiredRecords.length) return { ok: false, error: missingRequiredRecords.join(" "), checks } as const;
     if (!tokenFound) {
       return {
         ok: false,
