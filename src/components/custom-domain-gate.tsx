@@ -24,16 +24,42 @@ export function CustomDomainGate({ children }: { children: ReactNode }) {
     const host = window.location.hostname.toLowerCase();
     if (isPlatformHost(host)) { setChecked(true); return; }
 
+    // 1) Force HTTPS on connected custom domains (skip localhost / IPs)
+    if (
+      window.location.protocol === "http:" &&
+      host !== "localhost" &&
+      host !== "127.0.0.1" &&
+      !/^\d+\.\d+\.\d+\.\d+$/.test(host)
+    ) {
+      window.location.replace(
+        "https://" + host + window.location.pathname + window.location.search + window.location.hash,
+      );
+      return;
+    }
+
+    // 2) Build candidate hostnames so www and apex resolve to the same store
+    const apex = host.replace(/^www\./, "");
+    const candidates = host.startsWith("www.") ? [host, apex] : [host, `www.${host}`];
+
     let cancel = false;
     (async () => {
       const { data } = await supabase
         .from("stores")
         .select("slug, custom_domain, domain_verified")
-        .eq("custom_domain", host)
+        .in("custom_domain", candidates)
         .eq("domain_verified", true)
         .maybeSingle();
       if (cancel) return;
       if (!data) { setNotConnected(host); setChecked(true); return; }
+
+      // 3) Canonical redirect — if the stored domain differs (e.g. apex vs www), normalize the URL
+      const stored = data.custom_domain!;
+      if (stored !== host) {
+        window.location.replace(
+          window.location.protocol + "//" + stored + window.location.pathname + window.location.search + window.location.hash,
+        );
+        return;
+      }
 
       const path = loc.pathname;
       const storeBase = `/store/${data.slug}`;
