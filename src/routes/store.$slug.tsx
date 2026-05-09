@@ -10,6 +10,7 @@ import { T, type Lang } from "@/lib/i18n";
 import {
   Search, ShoppingBag, ShoppingCart, Download, Sparkles, Flame, Star,
   ChevronRight, FileText, Package, Tag, ArrowRight,
+  MapPin, Mail, Phone, Send, Facebook,
 } from "lucide-react";
 
 export const Route = createFileRoute("/store/$slug")({ component: Storefront });
@@ -133,27 +134,33 @@ function Storefront() {
   return (
     <div style={{ ...themeStyle, background: "var(--sf-bg)", color: "var(--sf-text)", fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif" }} className="min-h-screen">
       {/* Sticky Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-xl" style={{ background: "color-mix(in oklab, var(--sf-bg) 80%, transparent)", borderBottom: "1px solid var(--sf-border)" }}>
-        <div className="container mx-auto flex items-center gap-4 px-4 py-3">
-          <Link to="/store/$slug" params={{ slug }} className="flex items-center gap-3 shrink-0">
+      <header className="sticky top-0 z-40 shadow-sm" style={{ background: "var(--sf-surface)", borderBottom: "1px solid var(--sf-border)" }}>
+        {/* Top bar: logo + search + actions */}
+        <div className="container mx-auto flex items-center gap-3 px-4 py-3 md:gap-6 md:py-4">
+          <Link to="/store/$slug" params={{ slug }} className="flex items-center gap-2 shrink-0">
             {store.logo_url
-              ? <img src={store.logo_url} alt="" className="h-10 w-10 rounded-xl object-cover ring-2" style={{ ['--tw-ring-color' as any]: "var(--sf-primary)" }} />
-              : <div className="grid h-10 w-10 place-items-center rounded-xl text-base font-bold text-white" style={{ background: "var(--sf-hero)" }}>{store.name[0]}</div>}
-            <div className="hidden sm:block">
-              <div className="text-base font-bold leading-tight">{store.name}</div>
-              {store.bio && <div className="text-xs" style={{ color: "var(--sf-muted)" }}>{store.bio}</div>}
-            </div>
+              ? <img src={store.logo_url} alt={store.name} className="h-10 w-auto max-w-[160px] object-contain md:h-12" />
+              : <>
+                  <div className="grid h-10 w-10 place-items-center rounded-lg text-base font-bold text-white md:h-12 md:w-12" style={{ background: "var(--sf-hero)" }}>
+                    <ShoppingBag className="h-5 w-5" />
+                  </div>
+                  <span className="text-xl font-extrabold tracking-tight md:text-2xl" style={{ color: "var(--sf-primary)" }}>{store.name}</span>
+                </>}
           </Link>
 
-          <div className="relative flex-1 max-w-xl">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "var(--sf-muted)" }} />
+          <form onSubmit={(e) => e.preventDefault()} className="relative flex-1">
             <Input
               value={query} onChange={(e) => setQuery(e.target.value)}
               placeholder={t.search}
-              className="pl-9 h-10 rounded-full border-0"
-              style={{ background: "var(--sf-surface-2)", color: "var(--sf-text)" }}
+              className="h-11 rounded-md pr-28 text-sm"
+              style={{ background: "#fff", color: "#0F172A", border: "2px solid var(--sf-primary)" }}
             />
-          </div>
+            <button type="submit"
+              className="absolute right-1 top-1 inline-flex h-9 items-center gap-1.5 rounded-md px-4 text-sm font-semibold text-white transition hover:opacity-90"
+              style={{ background: "var(--sf-primary)" }}>
+              <Search className="h-4 w-4" /> <span className="hidden sm:inline">Search</span>
+            </button>
+          </form>
 
           <div className="hidden md:flex gap-1 rounded-full p-1" style={{ background: "var(--sf-surface-2)" }}>
             {(["en", "bn"] as Lang[]).map((l) => (
@@ -165,31 +172,29 @@ function Storefront() {
             ))}
           </div>
 
-          <button className="relative grid h-10 w-10 place-items-center rounded-full transition hover:scale-105" style={{ background: "var(--sf-surface-2)" }} aria-label={t.cart}>
+          <button className="relative grid h-11 w-11 place-items-center rounded-full transition hover:scale-105" style={{ background: "var(--sf-surface-2)", color: "var(--sf-primary)" }} aria-label={t.cart}>
             <ShoppingCart className="h-5 w-5" />
             <span className="absolute -top-1 -right-1 grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold text-white" style={{ background: "var(--sf-accent)" }}>0</span>
           </button>
         </div>
 
-        {/* Categories nav */}
+        {/* Colored categories strip */}
         {categories.length > 0 && (
-          <div className="container mx-auto flex items-center gap-2 overflow-x-auto px-4 pb-3 scrollbar-none">
-            <button onClick={() => setActiveCat("__all__")}
-              className="shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition"
-              style={activeCat === "__all__"
-                ? { background: "var(--sf-text)", color: "var(--sf-bg)" }
-                : { background: "var(--sf-surface-2)", color: "var(--sf-muted)" }}>
-              {t.all}
-            </button>
-            {categories.map(c => (
-              <button key={c} onClick={() => setActiveCat(c)}
-                className="shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition"
-                style={activeCat === c
-                  ? { background: "var(--sf-text)", color: "var(--sf-bg)" }
-                  : { background: "var(--sf-surface-2)", color: "var(--sf-muted)" }}>
-                {c}
+          <div style={{ background: "var(--sf-primary)" }}>
+            <div className="container mx-auto flex items-center gap-1 overflow-x-auto px-2 scrollbar-none">
+              <button onClick={() => setActiveCat("__all__")}
+                className="shrink-0 px-4 py-2.5 text-sm font-semibold text-white/95 transition hover:bg-black/15"
+                style={activeCat === "__all__" ? { background: "rgba(0,0,0,0.18)" } : undefined}>
+                {t.all}
               </button>
-            ))}
+              {categories.map(c => (
+                <button key={c} onClick={() => { setActiveCat(c); document.getElementById(`cat-${slugify(c)}`)?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
+                  className="shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-semibold text-white/95 transition hover:bg-black/15"
+                  style={activeCat === c ? { background: "rgba(0,0,0,0.18)" } : undefined}>
+                  {c}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </header>
@@ -365,9 +370,7 @@ function Storefront() {
         </section>
       </main>
 
-      <footer className="mt-10 border-t py-8 text-center text-sm" style={{ borderColor: "var(--sf-border)", color: "var(--sf-muted)" }}>
-        © {new Date().getFullYear()} {store.name}
-      </footer>
+      <StoreFooter store={store} isDigital={isDigital} />
 
       <WhatsAppFab phone={store.whatsapp} message={`Hi ${store.name}!`} />
     </div>
