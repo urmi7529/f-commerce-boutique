@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyStore } from "@/lib/use-my-store";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [domainInput, setDomainInput] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const verifiedHealthCheckKey = useRef<string | null>(null);
   const verifyFn = useServerFn(verifyDomainDns);
 
   useEffect(() => { if (store) setForm(store); }, [store]);
@@ -35,6 +36,16 @@ function SettingsPage() {
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form?.custom_domain, form?.domain_verified, form?.domain_verification_token]);
+
+  // Re-check previously verified domains once when Settings opens, so broken DNS is not shown as live.
+  useEffect(() => {
+    if (!form?.id || !form?.custom_domain || !form?.domain_verified || !form?.domain_verification_token) return;
+    const key = `${form.id}:${form.custom_domain}:${form.domain_verification_token}`;
+    if (verifiedHealthCheckKey.current === key) return;
+    verifiedHealthCheckKey.current = key;
+    runVerify(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form?.id, form?.custom_domain, form?.domain_verified, form?.domain_verification_token]);
 
   if (!form) return null;
 
@@ -57,11 +68,12 @@ function SettingsPage() {
   };
 
   const connectDomain = async () => {
-    const clean = domainInput.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    const clean = domainInput.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "");
     if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(clean)) return toast.error("Enter a valid domain (e.g. shop.example.com)");
     const token = `lovable-verify=${crypto.randomUUID()}`;
     const { error } = await supabase.from("stores").update({
       custom_domain: clean, domain_verification_token: token, domain_verified: false,
+      domain_last_checked_at: null, domain_last_check_error: null,
     }).eq("id", form.id);
     if (error) return toast.error(error.message);
     toast.success("Domain saved. Add the DNS records below, then click Verify.");
@@ -71,6 +83,7 @@ function SettingsPage() {
   const disconnectDomain = async () => {
     const { error } = await supabase.from("stores").update({
       custom_domain: null, domain_verification_token: null, domain_verified: false,
+      domain_last_checked_at: null, domain_last_check_error: null,
     }).eq("id", form.id);
     if (error) return toast.error(error.message);
     setDomainInput("");
@@ -86,7 +99,7 @@ function SettingsPage() {
       const res = await verifyFn({ data: { domain: form.custom_domain, token: form.domain_verification_token } });
       if (!res.ok) {
         await supabase.from("stores").update({
-          domain_last_checked_at: checkedAt, domain_last_check_error: res.error,
+          domain_verified: false, domain_last_checked_at: checkedAt, domain_last_check_error: res.error,
         }).eq("id", form.id);
         if (!silent) toast.error(res.error);
         reload();
@@ -94,6 +107,7 @@ function SettingsPage() {
         return;
       }
       const { error } = await supabase.from("stores").update({
+        custom_domain: res.canonicalDomain ?? form.custom_domain,
         domain_verified: true, domain_last_checked_at: checkedAt, domain_last_check_error: null,
       }).eq("id", form.id);
       if (error) toast.error(error.message);
@@ -113,7 +127,7 @@ function SettingsPage() {
     // Clear last error first so the UI updates immediately, then re-run verification now
     await supabase.from("stores").update({ domain_last_check_error: null }).eq("id", form.id);
     setForm({ ...form, domain_last_check_error: null });
-    runVerify(false);
+    await runVerify(false);
   };
 
   const copy = (s: string) => { navigator.clipboard.writeText(s); toast.success("Copied"); };
@@ -276,6 +290,12 @@ function SettingsPage() {
                       <tr>
                         <td className="p-2 font-mono">A</td>
                         <td className="p-2 font-mono">@</td>
+                        <td className="p-2 font-mono">185.158.133.1</td>
+                        <td className="p-2 text-right"><Button type="button" size="sm" variant="ghost" onClick={() => copy("185.158.133.1")}><Copy className="h-3 w-3" /></Button></td>
+                      </tr>
+                      <tr>
+                        <td className="p-2 font-mono">A</td>
+                        <td className="p-2 font-mono">www</td>
                         <td className="p-2 font-mono">185.158.133.1</td>
                         <td className="p-2 text-right"><Button type="button" size="sm" variant="ghost" onClick={() => copy("185.158.133.1")}><Copy className="h-3 w-3" /></Button></td>
                       </tr>
