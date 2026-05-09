@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyStore } from "@/lib/use-my-store";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [domainInput, setDomainInput] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const verifiedHealthCheckKey = useRef<string | null>(null);
   const verifyFn = useServerFn(verifyDomainDns);
 
   useEffect(() => { if (store) setForm(store); }, [store]);
@@ -35,6 +36,16 @@ function SettingsPage() {
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form?.custom_domain, form?.domain_verified, form?.domain_verification_token]);
+
+  // Re-check previously verified domains once when Settings opens, so broken DNS is not shown as live.
+  useEffect(() => {
+    if (!form?.id || !form?.custom_domain || !form?.domain_verified || !form?.domain_verification_token) return;
+    const key = `${form.id}:${form.custom_domain}:${form.domain_verification_token}`;
+    if (verifiedHealthCheckKey.current === key) return;
+    verifiedHealthCheckKey.current = key;
+    runVerify(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form?.id, form?.custom_domain, form?.domain_verified, form?.domain_verification_token]);
 
   if (!form) return null;
 
@@ -88,7 +99,7 @@ function SettingsPage() {
       const res = await verifyFn({ data: { domain: form.custom_domain, token: form.domain_verification_token } });
       if (!res.ok) {
         await supabase.from("stores").update({
-          domain_last_checked_at: checkedAt, domain_last_check_error: res.error,
+          domain_verified: false, domain_last_checked_at: checkedAt, domain_last_check_error: res.error,
         }).eq("id", form.id);
         if (!silent) toast.error(res.error);
         reload();
