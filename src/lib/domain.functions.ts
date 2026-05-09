@@ -55,19 +55,19 @@ export const verifyDomainDns = createServerFn({ method: "POST" })
       }
     }
 
-    // DNS can be correct before the hosting edge is ready; avoid showing a broken live link.
+    // DNS can be correct before the hosting edge and SSL are ready; avoid showing a broken live link.
     try {
-      const r = await fetch(`http://${domain}`, { method: "GET", redirect: "manual" });
+      const r = await fetch(`https://${domain}`, { method: "GET", redirect: "manual" });
       if (r.status < 200 || r.status >= 400) {
         return {
           ok: false,
-          error: `DNS records are found, but ${domain} is not live yet. Retry in a few minutes after hosting and SSL finish setting up. Current status: ${r.status}`,
+          error: `DNS records are found, but HTTPS for ${domain} is not live yet. Retry in a few minutes after hosting and SSL finish setting up. Current status: ${r.status}`,
         } as const;
       }
     } catch {
       return {
         ok: false,
-        error: `DNS records are found, but ${domain} is not reachable yet. Retry in a few minutes after propagation finishes.`,
+        error: `DNS records are found, but HTTPS for ${domain} is not reachable yet. Retry in a few minutes after propagation and SSL setup finish.`,
       } as const;
     }
 
