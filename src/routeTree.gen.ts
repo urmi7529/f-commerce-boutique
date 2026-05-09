@@ -19,6 +19,7 @@ import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settin
 import { Route as DashboardProductsRouteImport } from './routes/dashboard.products'
 import { Route as DashboardOrdersRouteImport } from './routes/dashboard.orders'
 import { Route as DashboardCategoriesRouteImport } from './routes/dashboard.categories'
+import { Route as StorePRouteImport } from './routes/store..p.'
 import { Route as StoreCRouteImport } from './routes/store..c.'
 import { Route as StoreSlugPProductIdRouteImport } from './routes/store.$slug.p.$productId'
 
@@ -72,6 +73,11 @@ const DashboardCategoriesRoute = DashboardCategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => DashboardRoute,
 } as any)
+const StorePRoute = StorePRouteImport.update({
+  id: '/store/p/',
+  path: '/store/p/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StoreCRoute = StoreCRouteImport.update({
   id: '/store/c/',
   path: '/store/c/',
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/store/$slug': typeof StoreSlugRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
   '/store/c/': typeof StoreCRoute
+  '/store/p/': typeof StorePRoute
   '/store/$slug/p/$productId': typeof StoreSlugPProductIdRoute
 }
 export interface FileRoutesByTo {
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/store/$slug': typeof StoreSlugRouteWithChildren
   '/dashboard': typeof DashboardIndexRoute
   '/store/c': typeof StoreCRoute
+  '/store/p': typeof StorePRoute
   '/store/$slug/p/$productId': typeof StoreSlugPProductIdRoute
 }
 export interface FileRoutesById {
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/store/$slug': typeof StoreSlugRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
   '/store/c/': typeof StoreCRoute
+  '/store/p/': typeof StorePRoute
   '/store/$slug/p/$productId': typeof StoreSlugPProductIdRoute
 }
 export interface FileRouteTypes {
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/store/$slug'
     | '/dashboard/'
     | '/store/c/'
+    | '/store/p/'
     | '/store/$slug/p/$productId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/store/$slug'
     | '/dashboard'
     | '/store/c'
+    | '/store/p'
     | '/store/$slug/p/$productId'
   id:
     | '__root__'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/store/$slug'
     | '/dashboard/'
     | '/store/c/'
+    | '/store/p/'
     | '/store/$slug/p/$productId'
   fileRoutesById: FileRoutesById
 }
@@ -176,6 +188,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   StoreSlugRoute: typeof StoreSlugRouteWithChildren
   StoreCRoute: typeof StoreCRoute
+  StorePRoute: typeof StorePRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -250,6 +263,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardCategoriesRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/store/p/': {
+      id: '/store/p/'
+      path: '/store/p'
+      fullPath: '/store/p/'
+      preLoaderRoute: typeof StorePRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/store/c/': {
       id: '/store/c/'
       path: '/store/c'
@@ -306,6 +326,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   StoreSlugRoute: StoreSlugRouteWithChildren,
   StoreCRoute: StoreCRoute,
+  StorePRoute: StorePRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
