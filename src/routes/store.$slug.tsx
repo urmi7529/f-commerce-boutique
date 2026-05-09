@@ -325,7 +325,7 @@ function Storefront() {
                 <div className="mt-1 h-0.5 w-12 rounded-full" style={{ background: "var(--sf-accent)" }} />
               </div>
               {items.length > 6 && (
-                <button onClick={() => setActiveCat(cat)} className="flex items-center gap-1 text-sm font-semibold transition hover:gap-2"
+                <button onClick={() => goToCategory(cat)} className="flex items-center gap-1 text-sm font-semibold transition hover:gap-2"
                   style={{ color: "var(--sf-accent)" }}>
                   View more <ArrowRight className="h-4 w-4" />
                 </button>
