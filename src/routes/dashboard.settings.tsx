@@ -299,7 +299,12 @@ function SettingsPage() {
                       Last check: <strong>{new Date(form.domain_last_checked_at).toLocaleTimeString()}</strong>
                     </div>
                     {form.domain_last_check_error && (
-                      <div className="mt-1 text-amber-700">⚠ {form.domain_last_check_error}</div>
+                      <>
+                        <div className="mt-1 text-amber-700">⚠ {form.domain_last_check_error}</div>
+                        <Button type="button" size="sm" variant="outline" className="mt-2" onClick={retryVerify} disabled={verifying}>
+                          {verifying ? "Retrying…" : "Retry verification"}
+                        </Button>
+                      </>
                     )}
                   </div>
                 )}
