@@ -147,6 +147,8 @@ export type Database = {
       }
       stores: {
         Row: {
+          banner_enabled: boolean
+          banner_url: string | null
           bio: string | null
           created_at: string
           currency: string
@@ -160,6 +162,8 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          banner_enabled?: boolean
+          banner_url?: string | null
           bio?: string | null
           created_at?: string
           currency?: string
@@ -173,6 +177,8 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          banner_enabled?: boolean
+          banner_url?: string | null
           bio?: string | null
           created_at?: string
           currency?: string
