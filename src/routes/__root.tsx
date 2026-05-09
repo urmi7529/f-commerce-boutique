@@ -11,6 +11,7 @@ import {
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
+import { CustomDomainGate } from "@/components/custom-domain-gate";
 
 function NotFoundComponent() {
   return (
@@ -119,7 +120,9 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Outlet />
+        <CustomDomainGate>
+          <Outlet />
+        </CustomDomainGate>
         <Toaster richColors position="top-center" />
       </AuthProvider>
     </QueryClientProvider>
