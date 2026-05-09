@@ -103,7 +103,7 @@ export const verifyDomainDns = createServerFn({ method: "POST" })
         host: domain,
         expected: "HTTP 200-399",
         found: `HTTP ${r.status}`,
-        status: httpsOk ? (aErrors.length ? "warning" : "success") : "error",
+        status: httpsOk ? "success" : "error",
         message: httpsOk ? "Site opens successfully" : "Site is not live over HTTPS yet",
         checkedAt,
       });
