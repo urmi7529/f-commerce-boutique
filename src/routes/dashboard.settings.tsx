@@ -68,20 +68,45 @@ function SettingsPage() {
     reload();
   };
 
-  const verify = async () => {
+  const runVerify = async (silent = false) => {
     if (!form.custom_domain || !form.domain_verification_token) return;
-    setVerifying(true);
+    if (!silent) setVerifying(true);
+    const checkedAt = new Date().toISOString();
     try {
       const res = await verifyFn({ data: { domain: form.custom_domain, token: form.domain_verification_token } });
-      if (!res.ok) { toast.error(res.error); setVerifying(false); return; }
-      const { error } = await supabase.from("stores").update({ domain_verified: true }).eq("id", form.id);
+      if (!res.ok) {
+        await supabase.from("stores").update({
+          domain_last_checked_at: checkedAt, domain_last_check_error: res.error,
+        }).eq("id", form.id);
+        if (!silent) toast.error(res.error);
+        reload();
+        if (!silent) setVerifying(false);
+        return;
+      }
+      const { error } = await supabase.from("stores").update({
+        domain_verified: true, domain_last_checked_at: checkedAt, domain_last_check_error: null,
+      }).eq("id", form.id);
       if (error) toast.error(error.message);
       else { toast.success("Domain verified! Your store is live on " + form.custom_domain); reload(); }
     } catch (e: any) {
-      toast.error(e?.message ?? "Verification failed");
+      const msg = e?.message ?? "Verification failed";
+      await supabase.from("stores").update({
+        domain_last_checked_at: checkedAt, domain_last_check_error: msg,
+      }).eq("id", form.id);
+      if (!silent) toast.error(msg);
+      reload();
     }
-    setVerifying(false);
+    if (!silent) setVerifying(false);
   };
+  const verify = () => runVerify(false);
+
+  // Auto-poll every 30s while a domain is connected but not yet verified
+  useEffect(() => {
+    if (!form?.custom_domain || form?.domain_verified) return;
+    const id = setInterval(() => { runVerify(true); }, 30000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form?.custom_domain, form?.domain_verified, form?.domain_verification_token]);
 
   const copy = (s: string) => { navigator.clipboard.writeText(s); toast.success("Copied"); };
 
