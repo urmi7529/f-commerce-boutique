@@ -185,6 +185,9 @@ export type Database = {
           bio: string | null
           created_at: string
           currency: string
+          custom_domain: string | null
+          domain_verification_token: string | null
+          domain_verified: boolean
           footer_about_url: string | null
           footer_address: string | null
           footer_appstore_url: string | null
@@ -210,6 +213,9 @@ export type Database = {
           bio?: string | null
           created_at?: string
           currency?: string
+          custom_domain?: string | null
+          domain_verification_token?: string | null
+          domain_verified?: boolean
           footer_about_url?: string | null
           footer_address?: string | null
           footer_appstore_url?: string | null
@@ -235,6 +241,9 @@ export type Database = {
           bio?: string | null
           created_at?: string
           currency?: string
+          custom_domain?: string | null
+          domain_verification_token?: string | null
+          domain_verified?: boolean
           footer_about_url?: string | null
           footer_address?: string | null
           footer_appstore_url?: string | null
