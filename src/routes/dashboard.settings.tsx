@@ -57,11 +57,12 @@ function SettingsPage() {
   };
 
   const connectDomain = async () => {
-    const clean = domainInput.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    const clean = domainInput.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "");
     if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(clean)) return toast.error("Enter a valid domain (e.g. shop.example.com)");
     const token = `lovable-verify=${crypto.randomUUID()}`;
     const { error } = await supabase.from("stores").update({
       custom_domain: clean, domain_verification_token: token, domain_verified: false,
+      domain_last_checked_at: null, domain_last_check_error: null,
     }).eq("id", form.id);
     if (error) return toast.error(error.message);
     toast.success("Domain saved. Add the DNS records below, then click Verify.");
@@ -71,6 +72,7 @@ function SettingsPage() {
   const disconnectDomain = async () => {
     const { error } = await supabase.from("stores").update({
       custom_domain: null, domain_verification_token: null, domain_verified: false,
+      domain_last_checked_at: null, domain_last_check_error: null,
     }).eq("id", form.id);
     if (error) return toast.error(error.message);
     setDomainInput("");
@@ -94,6 +96,7 @@ function SettingsPage() {
         return;
       }
       const { error } = await supabase.from("stores").update({
+        custom_domain: res.canonicalDomain ?? form.custom_domain,
         domain_verified: true, domain_last_checked_at: checkedAt, domain_last_check_error: null,
       }).eq("id", form.id);
       if (error) toast.error(error.message);
@@ -113,7 +116,7 @@ function SettingsPage() {
     // Clear last error first so the UI updates immediately, then re-run verification now
     await supabase.from("stores").update({ domain_last_check_error: null }).eq("id", form.id);
     setForm({ ...form, domain_last_check_error: null });
-    runVerify(false);
+    await runVerify(false);
   };
 
   const copy = (s: string) => { navigator.clipboard.writeText(s); toast.success("Copied"); };
