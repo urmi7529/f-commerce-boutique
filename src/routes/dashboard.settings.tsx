@@ -399,9 +399,30 @@ function SettingsPage() {
             )}
 
             {form.domain_verified && (
-              <p className="text-sm text-emerald-700">
-                ✓ Live at <a className="underline" href={`https://${form.custom_domain}`} target="_blank" rel="noreferrer">{form.custom_domain}</a>
-              </p>
+              <div className="space-y-2">
+                {siteStatus === "live" ? (
+                  <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>Live at <a className="underline font-medium" href={`https://${form.custom_domain}`} target="_blank" rel="noreferrer">{form.custom_domain}</a></span>
+                  </div>
+                ) : siteStatus === "setting_up" ? (
+                  <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+                    <Loader2 className="h-4 w-4 mt-0.5 animate-spin" />
+                    <div>
+                      <div className="font-medium">DNS verified — Site setting up</div>
+                      <div className="text-xs mt-1">{siteMessage ?? "Cloudflare is still attaching your domain. This usually clears within a few minutes."}</div>
+                      <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => runVerify(false)} disabled={verifying}>
+                        {verifying ? "Checking…" : "Check again"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>DNS verified for <a className="underline font-medium" href={`https://${form.custom_domain}`} target="_blank" rel="noreferrer">{form.custom_domain}</a></span>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
