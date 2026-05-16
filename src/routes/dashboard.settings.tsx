@@ -30,6 +30,13 @@ function SettingsPage() {
 
   useEffect(() => { if (store) setForm(store); }, [store]);
   useEffect(() => { if (store?.custom_domain) setDomainInput(store.custom_domain); }, [store]);
+  // Hydrate cached status so reload shows last known state immediately
+  useEffect(() => {
+    if (store?.site_status) {
+      setSiteStatus(store.site_status as any);
+      setSiteMessage(store.site_status_message ?? null);
+    }
+  }, [store?.site_status, store?.site_status_message]);
 
   // Auto-poll every 30s while a domain is connected but not yet verified.
   // Must run BEFORE any early return to keep hook order stable.
@@ -40,6 +47,23 @@ function SettingsPage() {
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form?.custom_domain, form?.domain_verified, form?.domain_verification_token, siteStatus]);
+
+  // Re-check immediately when the tab regains focus or comes back online,
+  // so users see the live state without waiting for the 30s tick.
+  useEffect(() => {
+    if (!form?.custom_domain) return;
+    if (form?.domain_verified && siteStatus === "live") return;
+    const trigger = () => { if (document.visibilityState === "visible") runVerify(true); };
+    window.addEventListener("focus", trigger);
+    window.addEventListener("online", trigger);
+    document.addEventListener("visibilitychange", trigger);
+    return () => {
+      window.removeEventListener("focus", trigger);
+      window.removeEventListener("online", trigger);
+      document.removeEventListener("visibilitychange", trigger);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form?.custom_domain, form?.domain_verified, siteStatus]);
 
   // Re-check previously verified domains once when Settings opens, so broken DNS is not shown as live.
   useEffect(() => {
