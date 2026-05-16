@@ -34,11 +34,12 @@ function SettingsPage() {
   // Auto-poll every 30s while a domain is connected but not yet verified.
   // Must run BEFORE any early return to keep hook order stable.
   useEffect(() => {
-    if (!form?.custom_domain || form?.domain_verified) return;
+    if (!form?.custom_domain) return;
+    if (form?.domain_verified && siteStatus === "live") return;
     const id = setInterval(() => { runVerify(true); }, 30000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form?.custom_domain, form?.domain_verified, form?.domain_verification_token]);
+  }, [form?.custom_domain, form?.domain_verified, form?.domain_verification_token, siteStatus]);
 
   // Re-check previously verified domains once when Settings opens, so broken DNS is not shown as live.
   useEffect(() => {
