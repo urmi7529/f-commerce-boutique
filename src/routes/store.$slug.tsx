@@ -314,6 +314,28 @@ function StoreHome({ slug }: { slug: string }) {
       )}
 
       <main className="container mx-auto px-4 py-10 space-y-14">
+        {/* Trust badges */}
+        <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[
+            { icon: Truck, title: t.fastDelivery, desc: t.fastDeliveryDesc },
+            { icon: ShieldCheck, title: t.securePayment, desc: t.securePaymentDesc },
+            { icon: RotateCcw, title: t.easyReturn, desc: t.easyReturnDesc },
+            { icon: Headphones, title: t.support247, desc: t.support247Desc },
+          ].map((b) => (
+            <div key={b.title} className="flex items-center gap-3 rounded-2xl p-4"
+              style={{ background: "var(--sf-surface)", border: "1px solid var(--sf-border)" }}>
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl"
+                style={{ background: "var(--sf-surface-2)", color: "var(--sf-primary)" }}>
+                <b.icon className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <div className="truncate text-sm font-bold">{b.title}</div>
+                <div className="truncate text-xs" style={{ color: "var(--sf-muted)" }}>{b.desc}</div>
+              </div>
+            </div>
+          ))}
+        </section>
+
         {/* Popular Categories grid (physical theme, BDStall-style) */}
         {!isDigital && categories.length > 0 && (
           <Section icon={<Tag className="h-5 w-5" />} title={t.categories}>
