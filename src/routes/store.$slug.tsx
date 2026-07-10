@@ -430,6 +430,24 @@ function StoreHome({ slug }: { slug: string }) {
                       <CatBtn key={c} active={activeCat === c} onClick={() => setActiveCat(c)} label={c} />
                     ))}
                   </div>
+                  {priceCeiling > 0 && (
+                    <div className="mt-5 border-t pt-4" style={{ borderColor: "var(--sf-border)" }}>
+                      <div className="mb-2 flex items-center justify-between">
+                        <h3 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--sf-muted)" }}>{t.filterByPrice}</h3>
+                        {priceMax != null && (
+                          <button onClick={() => setPriceMax(null)} className="text-xs font-semibold" style={{ color: "var(--sf-primary)" }}>{t.clearFilters}</button>
+                        )}
+                      </div>
+                      <input type="range" min={0} max={priceCeiling} step={Math.max(1, Math.round(priceCeiling / 100))}
+                        value={priceMax ?? priceCeiling}
+                        onChange={(e) => setPriceMax(Number(e.target.value))}
+                        className="w-full accent-emerald-600" />
+                      <div className="mt-1 flex justify-between text-xs" style={{ color: "var(--sf-muted)" }}>
+                        <span>৳ 0</span>
+                        <span>৳ {(priceMax ?? priceCeiling).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
                 </aside>
               )}
               <div>
