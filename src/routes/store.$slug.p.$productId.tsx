@@ -22,6 +22,8 @@ function ProductPage() {
   const [lang, setLang] = useState<Lang>("en");
   const [qty, setQty] = useState(1);
   const [orderOpen, setOrderOpen] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reloadReviews, setReloadReviews] = useState(0);
   const t = T[lang];
 
   useEffect(() => {
@@ -40,6 +42,16 @@ function ProductPage() {
       }
     })();
   }, [slug, productId]);
+
+  useEffect(() => {
+    if (!product?.id) return;
+    (async () => {
+      const { data } = await supabase.from("reviews").select("*")
+        .eq("product_id", product.id).eq("approved", true)
+        .order("created_at", { ascending: false });
+      setReviews(data ?? []);
+    })();
+  }, [product?.id, reloadReviews]);
 
   if (!store || !product) return <div className="grid min-h-screen place-items-center text-slate-500">Loading…</div>;
 
@@ -144,6 +156,15 @@ function ProductPage() {
               </a>
             )}
 
+            {store.product_whatsapp_url && (
+              <a href={store.product_whatsapp_url} target="_blank" rel="noreferrer"
+                className="mt-2 flex items-center justify-center gap-2 rounded px-4 py-3 text-sm font-semibold text-white hover:opacity-95"
+                style={{ background: "#25D366" }}>
+                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current"><path d="M20.52 3.48A11.86 11.86 0 0 0 12.05 0C5.5 0 .2 5.3.2 11.83c0 2.08.55 4.11 1.6 5.9L0 24l6.4-1.68a11.83 11.83 0 0 0 5.65 1.44h.01c6.53 0 11.83-5.3 11.83-11.83 0-3.16-1.23-6.13-3.47-8.45zM12.06 21.6h-.01a9.8 9.8 0 0 1-5-1.37l-.36-.22-3.8 1 1.02-3.7-.24-.38a9.79 9.79 0 0 1-1.5-5.1c0-5.42 4.42-9.83 9.85-9.83 2.63 0 5.1 1.03 6.96 2.88a9.77 9.77 0 0 1 2.88 6.95c0 5.43-4.42 9.85-9.8 9.85z"/></svg>
+                WhatsApp এ অর্ডার করুন
+              </a>
+            )}
+
             {/* Sales count - light gray bg, red left border, red number */}
             <div className="mt-4 border-l-4 bg-slate-100 px-4 py-2.5 text-sm" style={{ borderColor: "#DC2626" }}>
               এখন পর্যন্ত এই পণ্যটি বিক্রয় হয়েছে মোট :{" "}
@@ -173,11 +194,13 @@ function ProductPage() {
           </div>
         </div>
 
-        {/* Ratings */}
-        <div className="mt-5 rounded-md border border-slate-200 bg-white py-10 text-center shadow-sm">
-          <h3 className="text-base font-bold text-slate-900">Ratings &amp; Reviews From Our Customer</h3>
-          <div className="mt-4 text-3xl font-extrabold">0 /5</div>
-        </div>
+        <ReviewsSection
+          storeId={store.id}
+          productId={product.id}
+          primary={primary}
+          reviews={reviews}
+          onSubmitted={() => setReloadReviews((n) => n + 1)}
+        />
       </main>
 
       {/* Order modal */}
