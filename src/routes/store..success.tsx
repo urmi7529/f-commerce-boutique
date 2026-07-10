@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
 
-export const Route = createFileRoute("/store/$slug/success")({ component: SuccessPage });
+export const Route = createFileRoute("/store/success")({ component: SuccessPage });
 
 function SuccessPage() {
   const { slug } = Route.useParams();

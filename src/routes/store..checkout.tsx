@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/store/$slug/checkout")({ component: CheckoutPage });
+export const Route = createFileRoute("/store/checkout")({ component: CheckoutPage });
 
 function CheckoutPage() {
   const { slug } = Route.useParams();

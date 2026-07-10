@@ -6,7 +6,7 @@ import { T, type Lang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Minus, Plus, Trash2, ShoppingCart, Package } from "lucide-react";
 
-export const Route = createFileRoute("/store/$slug/cart")({ component: CartPage });
+export const Route = createFileRoute("/store/cart")({ component: CartPage });
 
 function CartPage() {
   const { slug } = Route.useParams();

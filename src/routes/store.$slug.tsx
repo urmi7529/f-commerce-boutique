@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { WhatsAppFab } from "@/components/whatsapp-fab";
 import { T, type Lang } from "@/lib/i18n";
+import { useCart } from "@/lib/use-cart";
+import { toast } from "sonner";
 import {
   Search, ShoppingBag, ShoppingCart, Download, Sparkles, Flame, Star,
   ChevronRight, FileText, Package, Tag, ArrowRight,
-  MapPin, Mail, Phone, Send, Facebook,
+  MapPin, Mail, Phone, Send, Facebook, Truck, ShieldCheck, RotateCcw, Headphones,
 } from "lucide-react";
 
 export const Route = createFileRoute("/store/$slug")({ component: Storefront });
