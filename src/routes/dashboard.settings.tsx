@@ -80,7 +80,7 @@ function SettingsPage() {
     if (!confirm(`Delete ${name}? This permanently removes products, orders, categories, reviews, messages, and settings.`)) return;
     const typed = prompt(`Type DELETE to permanently delete ${name}`);
     if (typed !== "DELETE") return toast.error("Store deletion cancelled");
-    const { error } = await supabase.rpc("delete_store_cascade", { _store_id: form.id });
+    const { error } = await supabase.from("stores").delete().eq("id", form.id);
     if (error) return toast.error(error.message);
     toast.success("Store deleted");
     navigate({ to: "/dashboard" });
