@@ -214,10 +214,36 @@ function SettingsPage() {
       footer_about_url: form.footer_about_url, footer_facebook_url: form.footer_facebook_url,
       footer_terms_url: form.footer_terms_url, footer_warranty_url: form.footer_warranty_url,
       footer_terms_text: form.footer_terms_text, footer_warranty_text: form.footer_warranty_text,
+      footer_return_text: form.footer_return_text, footer_return_url: form.footer_return_url,
+      footer_privacy_text: form.footer_privacy_text, footer_privacy_url: form.footer_privacy_url,
       footer_playstore_url: form.footer_playstore_url, footer_appstore_url: form.footer_appstore_url,
       footer_copyright: form.footer_copyright,
       delivery_inside_dhaka: Number(form.delivery_inside_dhaka ?? 0),
       delivery_outside_dhaka: Number(form.delivery_outside_dhaka ?? 0),
+      // SEO / Brand
+      meta_title: form.meta_title, meta_description: form.meta_description,
+      favicon_url: form.favicon_url, og_image_url: form.og_image_url,
+      tagline: form.tagline, brand_primary_color: form.brand_primary_color,
+      // Announcement
+      announcement_enabled: !!form.announcement_enabled,
+      announcement_text: form.announcement_text,
+      // Payment methods
+      payment_cod_enabled: !!form.payment_cod_enabled,
+      payment_bkash_enabled: !!form.payment_bkash_enabled, payment_bkash_number: form.payment_bkash_number,
+      payment_nagad_enabled: !!form.payment_nagad_enabled, payment_nagad_number: form.payment_nagad_number,
+      payment_rocket_enabled: !!form.payment_rocket_enabled, payment_rocket_number: form.payment_rocket_number,
+      payment_instructions: form.payment_instructions,
+      // Delivery zones (JSONB)
+      delivery_zones: (form.delivery_zones ?? []).filter((z: any) => z?.name?.trim()).map((z: any) => ({
+        name: String(z.name).trim(), charge: Number(z.charge ?? 0),
+      })),
+      // Business hours + holiday
+      business_hours: form.business_hours, business_days: form.business_days,
+      holiday_mode: !!form.holiday_mode, holiday_message: form.holiday_message,
+      min_order_amount: Number(form.min_order_amount ?? 0),
+      // Social
+      instagram_url: form.instagram_url, youtube_url: form.youtube_url,
+      tiktok_url: form.tiktok_url, whatsapp_channel_url: form.whatsapp_channel_url,
     }).eq("id", form.id);
     setSaving(false);
     if (error) return toast.error(error.message);
