@@ -57,7 +57,7 @@ function DashboardLayout() {
     return <div className="grid min-h-screen place-items-center text-muted-foreground">Loading…</div>;
   }
 
-  if (!store) {
+  if (!store && !isAdmin) {
     if (!isAdmin && accessStatus !== "approved") {
       return <AccessGate status={accessStatus} onSignOut={() => { signOut(); navigate({ to: "/" }); }} />;
     }
@@ -65,14 +65,16 @@ function DashboardLayout() {
   }
 
   const nav = [
-    { to: "/dashboard", label: "Overview", icon: StoreIcon, exact: true },
-    { to: "/dashboard/products", label: "Products", icon: Package },
-    { to: "/dashboard/categories", label: "Categories", icon: Tag },
-    { to: "/dashboard/orders", label: "Orders", icon: ShoppingCart },
+    ...(store ? [
+      { to: "/dashboard", label: "Overview", icon: StoreIcon, exact: true },
+      { to: "/dashboard/products", label: "Products", icon: Package },
+      { to: "/dashboard/categories", label: "Categories", icon: Tag },
+      { to: "/dashboard/orders", label: "Orders", icon: ShoppingCart },
+      { to: "/dashboard/reviews", label: "Reviews", icon: Star },
+      { to: "/dashboard/settings", label: "Settings", icon: Settings },
+      { to: "/dashboard/billing", label: "Billing", icon: CreditCard },
+    ] : []),
     { to: "/dashboard/messages", label: "Messages", icon: MessageCircle, badge: unreadMessages },
-    { to: "/dashboard/reviews", label: "Reviews", icon: Star },
-    { to: "/dashboard/settings", label: "Settings", icon: Settings },
-    { to: "/dashboard/billing", label: "Billing", icon: CreditCard },
     ...(isAdmin ? [
       { to: "/dashboard/users", label: "Users", icon: UsersIcon },
       { to: "/dashboard/payments", label: "Payments", icon: Wallet },
@@ -90,9 +92,11 @@ function DashboardLayout() {
             DokanLab
           </Link>
           <div className="flex items-center gap-2">
-            <Link to="/store/$slug" params={{ slug: store.slug }} target="_blank">
-              <Button variant="outline" size="sm"><ExternalLink className="mr-2 h-4 w-4" />View store</Button>
-            </Link>
+            {store && (
+              <Link to="/store/$slug" params={{ slug: store.slug }} target="_blank">
+                <Button variant="outline" size="sm"><ExternalLink className="mr-2 h-4 w-4" />View store</Button>
+              </Link>
+            )}
             <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate({ to: "/" }); }}>
               <LogOut className="h-4 w-4" />
             </Button>
