@@ -60,7 +60,7 @@ function Index() {
                   Start your store — Free <ArrowRight className="ml-1 h-4 w-4" />
                 </Button>
               </Link>
-              <Link to="/store/demo">
+              <Link to="/store/$slug" params={{ slug: "ghorerbazar" }}>
                 <Button size="lg" variant="outline" className="rounded-full">View demo store</Button>
               </Link>
             </div>
