@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingBag, Package, ShoppingCart, Settings, LogOut, Store as StoreIcon, ExternalLink, Tag, Star, Users as UsersIcon, Clock, Ban, CreditCard, Wallet } from "lucide-react";
+import { ShoppingBag, Package, ShoppingCart, Settings, LogOut, Store as StoreIcon, ExternalLink, Tag, Star, Users as UsersIcon, Clock, Ban, CreditCard, Wallet, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({ component: DashboardLayout });
@@ -19,6 +19,7 @@ function DashboardLayout() {
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [accessStatus, setAccessStatus] = useState<"pending" | "approved" | "blocked">("pending");
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
     if (loading) return;
@@ -36,11 +37,27 @@ function DashboardLayout() {
     })();
   }, [user, loading, navigate]);
 
+  useEffect(() => {
+    if (!user || checking || (!store && !isAdmin)) return;
+    let active = true;
+    const loadUnread = async () => {
+      let q = supabase.from("store_messages").select("id", { count: "exact", head: true }).eq("seen", false);
+      if (!isAdmin) q = q.eq("store_id", store.id);
+      const { count } = await q;
+      if (active) setUnreadMessages(count ?? 0);
+    };
+    loadUnread();
+    const ch = supabase.channel(`store-messages-nav-${store?.id ?? "admin"}-${isAdmin ? "admin" : "owner"}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "store_messages" }, loadUnread)
+      .subscribe();
+    return () => { active = false; supabase.removeChannel(ch); };
+  }, [user, checking, store, isAdmin]);
+
   if (loading || checking) {
     return <div className="grid min-h-screen place-items-center text-muted-foreground">Loading…</div>;
   }
 
-  if (!store) {
+  if (!store && !isAdmin) {
     if (!isAdmin && accessStatus !== "approved") {
       return <AccessGate status={accessStatus} onSignOut={() => { signOut(); navigate({ to: "/" }); }} />;
     }
@@ -48,18 +65,21 @@ function DashboardLayout() {
   }
 
   const nav = [
-    { to: "/dashboard", label: "Overview", icon: StoreIcon, exact: true },
-    { to: "/dashboard/products", label: "Products", icon: Package },
-    { to: "/dashboard/categories", label: "Categories", icon: Tag },
-    { to: "/dashboard/orders", label: "Orders", icon: ShoppingCart },
-    { to: "/dashboard/reviews", label: "Reviews", icon: Star },
-    { to: "/dashboard/settings", label: "Settings", icon: Settings },
-    { to: "/dashboard/billing", label: "Billing", icon: CreditCard },
+    ...(store ? [
+      { to: "/dashboard", label: "Overview", icon: StoreIcon, exact: true },
+      { to: "/dashboard/products", label: "Products", icon: Package },
+      { to: "/dashboard/categories", label: "Categories", icon: Tag },
+      { to: "/dashboard/orders", label: "Orders", icon: ShoppingCart },
+      { to: "/dashboard/reviews", label: "Reviews", icon: Star },
+      { to: "/dashboard/settings", label: "Settings", icon: Settings },
+      { to: "/dashboard/billing", label: "Billing", icon: CreditCard },
+    ] : []),
+    { to: "/dashboard/messages", label: "Messages", icon: MessageCircle, badge: unreadMessages },
     ...(isAdmin ? [
       { to: "/dashboard/users", label: "Users", icon: UsersIcon },
       { to: "/dashboard/payments", label: "Payments", icon: Wallet },
     ] : []),
-  ] as { to: string; label: string; icon: any; exact?: boolean }[];
+  ] as { to: string; label: string; icon: any; exact?: boolean; badge?: number }[];
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -72,9 +92,11 @@ function DashboardLayout() {
             DokanLab
           </Link>
           <div className="flex items-center gap-2">
-            <Link to="/store/$slug" params={{ slug: store.slug }} target="_blank">
-              <Button variant="outline" size="sm"><ExternalLink className="mr-2 h-4 w-4" />View store</Button>
-            </Link>
+            {store && (
+              <Link to="/store/$slug" params={{ slug: store.slug }} target="_blank">
+                <Button variant="outline" size="sm"><ExternalLink className="mr-2 h-4 w-4" />View store</Button>
+              </Link>
+            )}
             <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate({ to: "/" }); }}>
               <LogOut className="h-4 w-4" />
             </Button>
@@ -87,7 +109,13 @@ function DashboardLayout() {
             const active = n.exact ? loc.pathname === n.to : loc.pathname.startsWith(n.to);
             return (
               <Link key={n.to} to={n.to as any} className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${active ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}>
-                <n.icon className="h-4 w-4" /> {n.label}
+                <n.icon className="h-4 w-4" />
+                <span className="flex-1">{n.label}</span>
+                {!!n.badge && (
+                  <span className={`grid h-5 min-w-5 place-items-center rounded-full px-1 text-[10px] font-bold ${active ? "bg-primary-foreground/20" : "bg-destructive text-destructive-foreground"}`}>
+                    {n.badge > 99 ? "99+" : n.badge}
+                  </span>
+                )}
               </Link>
             );
           })}

@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import { ShoppingBag, Smartphone, Zap, MessageCircle, Globe, Check, ArrowRight, Sparkles, Store, CreditCard, BarChart3, Package } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -8,6 +10,29 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  const [prices, setPrices] = useState({
+    self: 499,
+    doneFirst: 999,
+    doneRecurring: 499,
+  });
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("admin_payment_settings")
+        .select("self_serve_amount, done_for_you_first_amount, done_for_you_recurring_amount")
+        .eq("id", "default")
+        .maybeSingle();
+      if (data) {
+        setPrices({
+          self: Number(data.self_serve_amount ?? 499),
+          doneFirst: Number(data.done_for_you_first_amount ?? 999),
+          doneRecurring: Number(data.done_for_you_recurring_amount ?? 499),
+        });
+      }
+    })();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
@@ -189,7 +214,7 @@ function Index() {
               <p className="mt-2 text-sm text-muted-foreground">You add products, manage orders, and set up your store on your own.</p>
             </div>
             <div className="mb-6 flex items-baseline gap-1">
-              <span className="font-display text-5xl font-bold">৳499</span>
+              <span className="font-display text-5xl font-bold">৳{prices.self.toLocaleString()}</span>
               <span className="text-muted-foreground">/month</span>
             </div>
             <ul className="mb-8 space-y-3 text-sm">
@@ -223,10 +248,10 @@ function Index() {
               <p className="mt-2 text-sm text-muted-foreground">Store setup, product upload, and design — all handled by our team.</p>
             </div>
             <div className="mb-2 flex items-baseline gap-1">
-              <span className="font-display text-5xl font-bold">৳999</span>
+              <span className="font-display text-5xl font-bold">৳{prices.doneFirst.toLocaleString()}</span>
               <span className="text-muted-foreground">1st month</span>
             </div>
-            <p className="mb-6 text-sm text-muted-foreground">Then <span className="font-semibold text-foreground">৳499/month</span> only</p>
+            <p className="mb-6 text-sm text-muted-foreground">Then <span className="font-semibold text-foreground">৳{prices.doneRecurring.toLocaleString()}/month</span> only</p>
             <ul className="mb-8 space-y-3 text-sm">
               {[
                 "Everything in Self-Serve",

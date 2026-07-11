@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyStore } from "@/lib/use-my-store";
 import { Button } from "@/components/ui/button";
@@ -8,72 +8,21 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { useServerFn } from "@tanstack/react-start";
-import { verifyDomainDns } from "@/lib/domain.functions";
-import { Copy, CheckCircle2, XCircle, Globe, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ExternalLink, Globe, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard/settings")({ component: SettingsPage });
 
 function SettingsPage() {
+  const navigate = useNavigate();
   const { store, reload } = useMyStore();
   const [form, setForm] = useState<any>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [saving, setSaving] = useState(false);
   const [domainInput, setDomainInput] = useState("");
-  const [verifying, setVerifying] = useState(false);
-  const verifiedHealthCheckKey = useRef<string | null>(null);
-  const [checks, setChecks] = useState<Array<{ key: string; status: "success" | "warning" | "error"; found: string; message: string; checkedAt: string }>>([]);
-  const [siteStatus, setSiteStatus] = useState<"live" | "setting_up" | "dns_only" | null>(null);
-  const [siteMessage, setSiteMessage] = useState<string | null>(null);
-  const verifyFn = useServerFn(verifyDomainDns);
 
   useEffect(() => { if (store) setForm(store); }, [store]);
   useEffect(() => { if (store?.custom_domain) setDomainInput(store.custom_domain); }, [store]);
-  // Hydrate cached status so reload shows last known state immediately
-  useEffect(() => {
-    if (store?.site_status) {
-      setSiteStatus(store.site_status as any);
-      setSiteMessage(store.site_status_message ?? null);
-    }
-  }, [store?.site_status, store?.site_status_message]);
-
-  // Auto-poll every 30s while a domain is connected but not yet verified.
-  // Must run BEFORE any early return to keep hook order stable.
-  useEffect(() => {
-    if (!form?.custom_domain) return;
-    if (form?.domain_verified && siteStatus === "live") return;
-    const id = setInterval(() => { runVerify(true); }, 30000);
-    return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form?.custom_domain, form?.domain_verified, form?.domain_verification_token, siteStatus]);
-
-  // Re-check immediately when the tab regains focus or comes back online,
-  // so users see the live state without waiting for the 30s tick.
-  useEffect(() => {
-    if (!form?.custom_domain) return;
-    if (form?.domain_verified && siteStatus === "live") return;
-    const trigger = () => { if (document.visibilityState === "visible") runVerify(true); };
-    window.addEventListener("focus", trigger);
-    window.addEventListener("online", trigger);
-    document.addEventListener("visibilitychange", trigger);
-    return () => {
-      window.removeEventListener("focus", trigger);
-      window.removeEventListener("online", trigger);
-      document.removeEventListener("visibilitychange", trigger);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form?.custom_domain, form?.domain_verified, siteStatus]);
-
-  // Re-check previously verified domains once when Settings opens, so broken DNS is not shown as live.
-  useEffect(() => {
-    if (!form?.id || !form?.custom_domain || !form?.domain_verified || !form?.domain_verification_token) return;
-    const key = `${form.id}:${form.custom_domain}:${form.domain_verification_token}`;
-    if (verifiedHealthCheckKey.current === key) return;
-    verifiedHealthCheckKey.current = key;
-    runVerify(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form?.id, form?.custom_domain, form?.domain_verified, form?.domain_verification_token]);
 
   if (!form) return null;
 
@@ -98,13 +47,18 @@ function SettingsPage() {
   const connectDomain = async () => {
     const clean = domainInput.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "");
     if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(clean)) return toast.error("Enter a valid domain (e.g. shop.example.com)");
-    const token = `lovable-verify=${crypto.randomUUID()}`;
     const { error } = await supabase.from("stores").update({
-      custom_domain: clean, domain_verification_token: token, domain_verified: false,
-      domain_last_checked_at: null, domain_last_check_error: null,
+      custom_domain: clean,
+      domain_verification_token: null,
+      domain_verified: true,
+      domain_last_checked_at: new Date().toISOString(),
+      domain_last_check_error: null,
+      site_status: "live",
+      site_status_message: "Routing saved after domain setup in Lovable",
+      site_status_checked_at: new Date().toISOString(),
     }).eq("id", form.id);
     if (error) return toast.error(error.message);
-    toast.success("Domain saved. Add the DNS records below, then click Verify.");
+    toast.success("Domain routing saved for this store");
     reload();
   };
 
@@ -112,6 +66,7 @@ function SettingsPage() {
     const { error } = await supabase.from("stores").update({
       custom_domain: null, domain_verification_token: null, domain_verified: false,
       domain_last_checked_at: null, domain_last_check_error: null,
+      site_status: null, site_status_message: null, site_status_checked_at: null,
     }).eq("id", form.id);
     if (error) return toast.error(error.message);
     setDomainInput("");
@@ -119,88 +74,17 @@ function SettingsPage() {
     reload();
   };
 
-  async function runVerify(silent = false) {
-    if (!form.custom_domain || !form.domain_verification_token) return;
-    if (!silent) setVerifying(true);
-    const checkedAt = new Date().toISOString();
-    try {
-      const res = await verifyFn({ data: { domain: form.custom_domain, token: form.domain_verification_token } });
-      if ((res as any).checks) setChecks((res as any).checks);
-      const nextStatus = (res as any).siteStatus ?? null;
-      const nextMessage = (res as any).siteMessage ?? null;
-      if (nextStatus) {
-        setSiteStatus(nextStatus);
-        setSiteMessage(nextMessage);
-        // Persist so other sessions / reload show fresh state
-        if (nextStatus !== form.site_status || nextMessage !== form.site_status_message) {
-          await supabase.from("stores").update({
-            site_status: nextStatus,
-            site_status_message: nextMessage,
-            site_status_checked_at: checkedAt,
-          }).eq("id", form.id);
-          if (silent && nextStatus === "live" && form.site_status !== "live") {
-            toast.success("✅ Your site is now live with SSL!");
-          }
-        }
-      }
-      if (!res.ok) {
-        await supabase.from("stores").update({
-          domain_verified: false, domain_last_checked_at: checkedAt, domain_last_check_error: res.error,
-        }).eq("id", form.id);
-        if (!silent) toast.error(res.error);
-        reload();
-        if (!silent) setVerifying(false);
-        return;
-      }
-      const { error } = await supabase.from("stores").update({
-        custom_domain: res.canonicalDomain ?? form.custom_domain,
-        domain_verified: true, domain_last_checked_at: checkedAt, domain_last_check_error: null,
-      }).eq("id", form.id);
-      if (error) toast.error(error.message);
-      else { toast.success("Domain verified! Your store is live on " + form.custom_domain); reload(); }
-    } catch (e: any) {
-      const msg = e?.message ?? "Verification failed";
-      await supabase.from("stores").update({
-        domain_last_checked_at: checkedAt, domain_last_check_error: msg,
-      }).eq("id", form.id);
-      if (!silent) toast.error(msg);
-      reload();
-    }
-    if (!silent) setVerifying(false);
-  }
-  const verify = () => runVerify(false);
-  const retryVerify = async () => {
-    // Clear last error first so the UI updates immediately, then re-run verification now
-    await supabase.from("stores").update({ domain_last_check_error: null }).eq("id", form.id);
-    setForm({ ...form, domain_last_check_error: null });
-    await runVerify(false);
-  };
-
-  const copy = (s: string) => { navigator.clipboard.writeText(s); toast.success("Copied"); };
-
-  const apexHost = form?.custom_domain ?? "";
-  const wwwHost = apexHost ? `www.${apexHost}` : "";
-  const findCheck = (key: string) => checks.find((c) => c.key === key);
-  const RecordStatus = ({ check }: { check?: { status: "success" | "warning" | "error"; found: string; message: string } }) => {
-    if (!check) {
-      return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-          <XCircle className="h-3 w-3" /> Pending
-        </span>
-      );
-    }
-    if (check.status === "success") {
-      return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-          <CheckCircle2 className="h-3 w-3" /> Verified
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700" title={check.message}>
-        <XCircle className="h-3 w-3" /> Pending
-      </span>
-    );
+  const deleteStore = async () => {
+    if (!form?.id) return;
+    const name = form.name ?? "this store";
+    if (!confirm(`Delete ${name}? This permanently removes products, orders, categories, reviews, messages, and settings.`)) return;
+    const typed = prompt(`Type DELETE to permanently delete ${name}`);
+    if (typed !== "DELETE") return toast.error("Store deletion cancelled");
+    const { error } = await supabase.from("stores").delete().eq("id", form.id);
+    if (error) return toast.error(error.message);
+    toast.success("Store deleted");
+    navigate({ to: "/dashboard" });
+    window.setTimeout(() => window.location.reload(), 300);
   };
 
   const save = async (e: React.FormEvent) => {
@@ -592,11 +476,20 @@ function SettingsPage() {
           <Globe className="h-5 w-5 text-primary" />
           <Label className="text-base">Custom Domain</Label>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Connect your own domain (e.g. <code>shop.example.com</code>). Once verified,
-          your storefront will be served at that domain, and admin login will live at
-          <code> yourdomain.com/admin</code>.
-        </p>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <div className="font-semibold">Complete the Lovable domain setup first</div>
+              <p className="mt-1 text-xs leading-relaxed">
+                Domain SSL and hosting must be connected from Project Settings → Domains. After it becomes Active there, save the same domain below so this store opens on that domain.
+              </p>
+              <a href="https://docs.lovable.dev/features/custom-domain" target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold underline">
+                Custom domain setup guide <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          </div>
+        </div>
 
         {!form.custom_domain ? (
           <div className="flex gap-2">
@@ -608,103 +501,33 @@ function SettingsPage() {
             <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
               <div className="flex items-center gap-2">
                 <span className="font-medium">{form.custom_domain}</span>
-                {form.domain_verified ? (
-                  <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                    <CheckCircle2 className="h-3 w-3" /> Verified
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                    <XCircle className="h-3 w-3" /> Pending
-                  </span>
-                )}
+                <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                  <CheckCircle2 className="h-3 w-3" /> Saved
+                </span>
               </div>
               <Button type="button" variant="outline" size="sm" onClick={disconnectDomain}>Disconnect</Button>
             </div>
-
-            {!form.domain_verified && (
-              <div className="space-y-3">
-                <p className="text-sm font-medium">Add these DNS records at your registrar:</p>
-                <div className="overflow-hidden rounded-lg border border-border">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                      <tr><th className="p-2 text-left">Type</th><th className="p-2 text-left">Name</th><th className="p-2 text-left">Value</th><th className="p-2 text-left">Status</th><th className="p-2"></th></tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      <tr>
-                        <td className="p-2 font-mono">A</td>
-                        <td className="p-2 font-mono">@</td>
-                        <td className="p-2 font-mono">185.158.133.1</td>
-                        <td className="p-2"><RecordStatus check={findCheck(`a-${apexHost}`)} /></td>
-                        <td className="p-2 text-right"><Button type="button" size="sm" variant="ghost" onClick={() => copy("185.158.133.1")}><Copy className="h-3 w-3" /></Button></td>
-                      </tr>
-                      <tr>
-                        <td className="p-2 font-mono">A</td>
-                        <td className="p-2 font-mono">www</td>
-                        <td className="p-2 font-mono">185.158.133.1</td>
-                        <td className="p-2"><RecordStatus check={findCheck(`a-${wwwHost}`)} /></td>
-                        <td className="p-2 text-right"><Button type="button" size="sm" variant="ghost" onClick={() => copy("185.158.133.1")}><Copy className="h-3 w-3" /></Button></td>
-                      </tr>
-                      <tr>
-                        <td className="p-2 font-mono">TXT</td>
-                        <td className="p-2 font-mono">_lovable-verify</td>
-                        <td className="p-2 font-mono break-all">{form.domain_verification_token}</td>
-                        <td className="p-2"><RecordStatus check={findCheck("txt-ownership")} /></td>
-                        <td className="p-2 text-right"><Button type="button" size="sm" variant="ghost" onClick={() => copy(form.domain_verification_token)}><Copy className="h-3 w-3" /></Button></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <p className="text-xs text-muted-foreground">DNS changes can take 5 minutes to a few hours to propagate.</p>
-                <div className="flex items-center gap-3">
-                  <Button type="button" onClick={verify} disabled={verifying}>{verifying ? "Verifying…" : "Verify domain"}</Button>
-                  <span className="text-xs text-muted-foreground">Auto-checking every 30s…</span>
-                </div>
-                {form.domain_last_checked_at && (
-                  <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs">
-                    <div className="text-muted-foreground">
-                      Last check: <strong>{new Date(form.domain_last_checked_at).toLocaleTimeString()}</strong>
-                    </div>
-                    {form.domain_last_check_error && (
-                      <>
-                        <div className="mt-1 text-amber-700">⚠ {form.domain_last_check_error}</div>
-                        <Button type="button" size="sm" variant="outline" className="mt-2" onClick={retryVerify} disabled={verifying}>
-                          {verifying ? "Retrying…" : "Retry verification"}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                )}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800">
+                <CheckCircle2 className="h-4 w-4" />
+                <span>Store routing saved for <a className="underline font-medium" href={`https://${form.custom_domain}`} target="_blank" rel="noreferrer">{form.custom_domain}</a></span>
               </div>
-            )}
-
-            {form.domain_verified && (
-              <div className="space-y-2">
-                {siteStatus === "live" ? (
-                  <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800">
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span>Live at <a className="underline font-medium" href={`https://${form.custom_domain}`} target="_blank" rel="noreferrer">{form.custom_domain}</a></span>
-                  </div>
-                ) : siteStatus === "setting_up" ? (
-                  <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
-                    <Loader2 className="h-4 w-4 mt-0.5 animate-spin" />
-                    <div>
-                      <div className="font-medium">DNS verified — Site setting up</div>
-                      <div className="text-xs mt-1">{siteMessage ?? "Cloudflare is still attaching your domain. This usually clears within a few minutes."}</div>
-                      <Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => runVerify(false)} disabled={verifying}>
-                        {verifying ? "Checking…" : "Check again"}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800">
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span>DNS verified for <a className="underline font-medium" href={`https://${form.custom_domain}`} target="_blank" rel="noreferrer">{form.custom_domain}</a></span>
-                  </div>
-                )}
+              <p className="text-xs text-muted-foreground">
+                If this domain still fails in the browser, finish the domain connection in Project Settings → Domains and wait for SSL to become Active.
+              </p>
               </div>
-            )}
           </div>
         )}
+      </div>
+
+      <div className="rounded-2xl border border-destructive/30 bg-card p-6 space-y-4 shadow-sm">
+        <div>
+          <Label className="text-base text-destructive">Danger zone</Label>
+          <p className="mt-1 text-xs text-muted-foreground">Delete this store permanently, including products, orders, categories, reviews, messages, and settings.</p>
+        </div>
+        <Button type="button" variant="destructive" onClick={deleteStore}>
+          <Trash2 className="mr-2 h-4 w-4" /> Delete store
+        </Button>
       </div>
 
       <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button>
