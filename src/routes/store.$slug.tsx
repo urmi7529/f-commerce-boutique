@@ -14,6 +14,7 @@ import {
   Search, ShoppingBag, ShoppingCart, Download, Sparkles, Flame, Star,
   ChevronRight, FileText, Package, Tag, ArrowRight,
   MapPin, Mail, Phone, Send, Facebook, Truck, ShieldCheck, RotateCcw, Headphones,
+  Instagram, Youtube, Music2, Megaphone, Clock,
 } from "lucide-react";
 
 export const Route = createFileRoute("/store/$slug")({ component: Storefront });
@@ -172,8 +173,45 @@ function StoreHome({ slug }: { slug: string }) {
         ["--sf-hero" as any]: "linear-gradient(135deg, #10B981 0%, #06B6D4 55%, #0EA5E9 100%)",
       };
 
+  // Owner-set brand primary color overrides theme default
+  if (store.brand_primary_color) {
+    (themeStyle as any)["--sf-primary"] = store.brand_primary_color;
+    (themeStyle as any)["--sf-hero"] = `linear-gradient(135deg, ${store.brand_primary_color} 0%, ${(themeStyle as any)["--sf-primary-2"]} 100%)`;
+  }
+
+  // Update <title>, meta description, favicon from store settings
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const title = store.meta_title?.trim() || store.name;
+    if (title) document.title = title;
+    const desc = store.meta_description?.trim() || store.tagline || store.bio;
+    if (desc) {
+      let m = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
+      if (!m) { m = document.createElement("meta"); m.name = "description"; document.head.appendChild(m); }
+      m.content = desc;
+    }
+    if (store.favicon_url) {
+      let l = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
+      if (!l) { l = document.createElement("link"); l.rel = "icon"; document.head.appendChild(l); }
+      l.href = store.favicon_url;
+    }
+  }, [store.meta_title, store.meta_description, store.name, store.tagline, store.bio, store.favicon_url]);
+
   return (
     <div style={{ ...themeStyle, background: "var(--sf-bg)", color: "var(--sf-text)" }} className="min-h-screen font-sans">
+      {/* Holiday banner */}
+      {store.holiday_mode && (
+        <div className="w-full px-4 py-2.5 text-center text-sm font-semibold text-white" style={{ background: "#DC2626" }}>
+          🏖️ {store.holiday_message?.trim() || "We are currently closed. Orders are paused."}
+        </div>
+      )}
+      {/* Announcement bar */}
+      {store.announcement_enabled && store.announcement_text?.trim() && (
+        <div className="w-full px-4 py-2 text-center text-xs font-medium text-white md:text-sm"
+          style={{ background: "linear-gradient(90deg, var(--sf-primary), var(--sf-primary-2))" }}>
+          <span className="inline-flex items-center gap-2"><Megaphone className="h-3.5 w-3.5" /> {store.announcement_text}</span>
+        </div>
+      )}
       {/* Sticky Header */}
       <header className="sticky top-0 z-40 shadow-sm" style={{ background: "var(--sf-surface)", borderBottom: "1px solid var(--sf-border)" }}>
         {/* Top bar: logo + search + actions */}
@@ -635,7 +673,17 @@ function StoreFooter({ store, isDigital }: { store: any; isDigital: boolean }) {
     { label: "Facebook Page", href: store.footer_facebook_url },
     { label: "Terms & Condition", href: store.footer_terms_url, text: store.footer_terms_text },
     { label: "Warranty Policy", href: store.footer_warranty_url, text: store.footer_warranty_text },
+    { label: "Return & Refund", href: store.footer_return_url, text: store.footer_return_text },
+    { label: "Privacy Policy", href: store.footer_privacy_url, text: store.footer_privacy_text },
   ].filter(l => (l.text && l.text.trim()) || l.href);
+
+  const socials: Array<{ href?: string; label: string; Icon: any }> = [
+    { href: store.footer_facebook_url, label: "Facebook", Icon: Facebook },
+    { href: store.instagram_url, label: "Instagram", Icon: Instagram },
+    { href: store.youtube_url, label: "YouTube", Icon: Youtube },
+    { href: store.tiktok_url, label: "TikTok", Icon: Music2 },
+    { href: store.whatsapp_channel_url, label: "WhatsApp", Icon: Send },
+  ].filter(s => s.href);
 
   return (
     <>
@@ -702,14 +750,25 @@ function StoreFooter({ store, isDigital }: { store: any; isDigital: boolean }) {
                 <a href={`tel:${store.footer_phone}`} className="transition hover:text-white" style={{ color: palette.muted }}>{store.footer_phone}</a>
               </li>
             )}
+            {(store.business_hours || store.business_days) && (
+              <li className="flex gap-2.5">
+                <Clock className="mt-0.5 h-4 w-4 shrink-0" style={{ color: palette.accent }} />
+                <span style={{ color: palette.muted }}>
+                  {store.business_hours}
+                  {store.business_days && <span className="block text-xs opacity-80">{store.business_days}</span>}
+                </span>
+              </li>
+            )}
           </ul>
-          {store.footer_facebook_url && (
-            <div className="flex items-center gap-2 pt-1">
-              <a href={store.footer_facebook_url} target="_blank" rel="noreferrer" aria-label="Facebook"
-                className="grid h-9 w-9 place-items-center rounded-full transition hover:scale-110 hover:text-white"
-                style={{ background: palette.surface, color: palette.muted, border: `1px solid ${palette.divider}` }}>
-                <Facebook className="h-4 w-4" />
-              </a>
+          {socials.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              {socials.map((s) => (
+                <a key={s.label} href={s.href} target="_blank" rel="noreferrer" aria-label={s.label}
+                  className="grid h-9 w-9 place-items-center rounded-full transition hover:scale-110 hover:text-white"
+                  style={{ background: palette.surface, color: palette.muted, border: `1px solid ${palette.divider}` }}>
+                  <s.Icon className="h-4 w-4" />
+                </a>
+              ))}
             </div>
           )}
         </div>

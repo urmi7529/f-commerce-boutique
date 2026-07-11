@@ -234,18 +234,25 @@ export type Database = {
       }
       stores: {
         Row: {
+          announcement_enabled: boolean
+          announcement_text: string | null
           banner_enabled: boolean
           banner_url: string | null
           bio: string | null
+          brand_primary_color: string | null
+          business_days: string | null
+          business_hours: string | null
           created_at: string
           currency: string
           custom_domain: string | null
           delivery_inside_dhaka: number
           delivery_outside_dhaka: number
+          delivery_zones: Json
           domain_last_check_error: string | null
           domain_last_checked_at: string | null
           domain_verification_token: string | null
           domain_verified: boolean
+          favicon_url: string | null
           footer_about_url: string | null
           footer_address: string | null
           footer_appstore_url: string | null
@@ -254,36 +261,66 @@ export type Database = {
           footer_facebook_url: string | null
           footer_phone: string | null
           footer_playstore_url: string | null
+          footer_privacy_text: string | null
+          footer_privacy_url: string | null
+          footer_return_text: string | null
+          footer_return_url: string | null
           footer_terms_text: string | null
           footer_terms_url: string | null
           footer_warranty_text: string | null
           footer_warranty_url: string | null
+          holiday_message: string | null
+          holiday_mode: boolean
           id: string
+          instagram_url: string | null
           logo_url: string | null
+          meta_description: string | null
+          meta_title: string | null
+          min_order_amount: number
           name: string
+          og_image_url: string | null
           owner_id: string
+          payment_bkash_enabled: boolean
+          payment_bkash_number: string | null
+          payment_cod_enabled: boolean
+          payment_instructions: string | null
+          payment_nagad_enabled: boolean
+          payment_nagad_number: string | null
+          payment_rocket_enabled: boolean
+          payment_rocket_number: string | null
           product_whatsapp_url: string | null
           site_status: string | null
           site_status_checked_at: string | null
           site_status_message: string | null
           slug: string
+          tagline: string | null
           theme: string
+          tiktok_url: string | null
           updated_at: string
           whatsapp: string | null
+          whatsapp_channel_url: string | null
+          youtube_url: string | null
         }
         Insert: {
+          announcement_enabled?: boolean
+          announcement_text?: string | null
           banner_enabled?: boolean
           banner_url?: string | null
           bio?: string | null
+          brand_primary_color?: string | null
+          business_days?: string | null
+          business_hours?: string | null
           created_at?: string
           currency?: string
           custom_domain?: string | null
           delivery_inside_dhaka?: number
           delivery_outside_dhaka?: number
+          delivery_zones?: Json
           domain_last_check_error?: string | null
           domain_last_checked_at?: string | null
           domain_verification_token?: string | null
           domain_verified?: boolean
+          favicon_url?: string | null
           footer_about_url?: string | null
           footer_address?: string | null
           footer_appstore_url?: string | null
@@ -292,36 +329,66 @@ export type Database = {
           footer_facebook_url?: string | null
           footer_phone?: string | null
           footer_playstore_url?: string | null
+          footer_privacy_text?: string | null
+          footer_privacy_url?: string | null
+          footer_return_text?: string | null
+          footer_return_url?: string | null
           footer_terms_text?: string | null
           footer_terms_url?: string | null
           footer_warranty_text?: string | null
           footer_warranty_url?: string | null
+          holiday_message?: string | null
+          holiday_mode?: boolean
           id?: string
+          instagram_url?: string | null
           logo_url?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
+          min_order_amount?: number
           name: string
+          og_image_url?: string | null
           owner_id: string
+          payment_bkash_enabled?: boolean
+          payment_bkash_number?: string | null
+          payment_cod_enabled?: boolean
+          payment_instructions?: string | null
+          payment_nagad_enabled?: boolean
+          payment_nagad_number?: string | null
+          payment_rocket_enabled?: boolean
+          payment_rocket_number?: string | null
           product_whatsapp_url?: string | null
           site_status?: string | null
           site_status_checked_at?: string | null
           site_status_message?: string | null
           slug: string
+          tagline?: string | null
           theme?: string
+          tiktok_url?: string | null
           updated_at?: string
           whatsapp?: string | null
+          whatsapp_channel_url?: string | null
+          youtube_url?: string | null
         }
         Update: {
+          announcement_enabled?: boolean
+          announcement_text?: string | null
           banner_enabled?: boolean
           banner_url?: string | null
           bio?: string | null
+          brand_primary_color?: string | null
+          business_days?: string | null
+          business_hours?: string | null
           created_at?: string
           currency?: string
           custom_domain?: string | null
           delivery_inside_dhaka?: number
           delivery_outside_dhaka?: number
+          delivery_zones?: Json
           domain_last_check_error?: string | null
           domain_last_checked_at?: string | null
           domain_verification_token?: string | null
           domain_verified?: boolean
+          favicon_url?: string | null
           footer_about_url?: string | null
           footer_address?: string | null
           footer_appstore_url?: string | null
@@ -330,22 +397,45 @@ export type Database = {
           footer_facebook_url?: string | null
           footer_phone?: string | null
           footer_playstore_url?: string | null
+          footer_privacy_text?: string | null
+          footer_privacy_url?: string | null
+          footer_return_text?: string | null
+          footer_return_url?: string | null
           footer_terms_text?: string | null
           footer_terms_url?: string | null
           footer_warranty_text?: string | null
           footer_warranty_url?: string | null
+          holiday_message?: string | null
+          holiday_mode?: boolean
           id?: string
+          instagram_url?: string | null
           logo_url?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
+          min_order_amount?: number
           name?: string
+          og_image_url?: string | null
           owner_id?: string
+          payment_bkash_enabled?: boolean
+          payment_bkash_number?: string | null
+          payment_cod_enabled?: boolean
+          payment_instructions?: string | null
+          payment_nagad_enabled?: boolean
+          payment_nagad_number?: string | null
+          payment_rocket_enabled?: boolean
+          payment_rocket_number?: string | null
           product_whatsapp_url?: string | null
           site_status?: string | null
           site_status_checked_at?: string | null
           site_status_message?: string | null
           slug?: string
+          tagline?: string | null
           theme?: string
+          tiktok_url?: string | null
           updated_at?: string
           whatsapp?: string | null
+          whatsapp_channel_url?: string | null
+          youtube_url?: string | null
         }
         Relationships: []
       }

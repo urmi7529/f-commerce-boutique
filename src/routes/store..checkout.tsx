@@ -24,7 +24,8 @@ function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [area, setArea] = useState<"inside" | "outside">("inside");
+  const [zoneIndex, setZoneIndex] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<string>("cod");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -37,17 +38,45 @@ function CheckoutPage() {
   if (!store) return <div className="grid min-h-screen place-items-center text-slate-500">Loading…</div>;
 
   const primary = store.theme === "digital" ? "#6366F1" : "#059669";
-  const insideCharge = Number(store.delivery_inside_dhaka ?? 60);
-  const outsideCharge = Number(store.delivery_outside_dhaka ?? 100);
-  const delivery = area === "inside" ? insideCharge : outsideCharge;
+
+  // Zones: use custom delivery_zones if set, else legacy Inside/Outside Dhaka
+  const customZones = Array.isArray(store.delivery_zones) ? store.delivery_zones : [];
+  const zones: Array<{ name: string; charge: number }> = customZones.length > 0
+    ? customZones.map((z: any) => ({ name: String(z.name), charge: Number(z.charge ?? 0) }))
+    : [
+        { name: "ঢাকার ভিতরে (Inside Dhaka)", charge: Number(store.delivery_inside_dhaka ?? 60) },
+        { name: "ঢাকার বাহিরে (Outside Dhaka)", charge: Number(store.delivery_outside_dhaka ?? 100) },
+      ];
+  const activeZone = zones[Math.min(zoneIndex, zones.length - 1)] ?? zones[0];
+  const delivery = activeZone?.charge ?? 0;
   const subtotal = cart.subtotal;
   const grandTotal = subtotal + delivery;
 
+  // Payment methods
+  const methods: Array<{ key: string; label: string; number?: string }> = [
+    store.payment_cod_enabled !== false ? { key: "cod", label: "Cash on Delivery" } : null,
+    store.payment_bkash_enabled ? { key: "bkash", label: "bKash", number: store.payment_bkash_number } : null,
+    store.payment_nagad_enabled ? { key: "nagad", label: "Nagad", number: store.payment_nagad_number } : null,
+    store.payment_rocket_enabled ? { key: "rocket", label: "Rocket", number: store.payment_rocket_number } : null,
+  ].filter(Boolean) as any;
+  if (methods.length > 0 && !methods.find((m: any) => m.key === paymentMethod)) {
+    // ensure a valid selection
+    setTimeout(() => setPaymentMethod(methods[0].key), 0);
+  }
+
+  const minOrder = Number(store.min_order_amount ?? 0);
+  const belowMin = minOrder > 0 && subtotal < minOrder;
+  const holiday = !!store.holiday_mode;
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (holiday) return toast.error(store.holiday_message?.trim() || "Store is currently closed for holidays.");
     if (cart.items.length === 0) return toast.error(t.emptyCart);
+    if (belowMin) return toast.error(`Minimum order is ৳${minOrder}. Please add more items.`);
     if (!name.trim() || !phone.trim() || !address.trim()) return toast.error("Please fill all required fields");
     setSubmitting(true);
+    const methodLabel = methods.find((m: any) => m.key === paymentMethod)?.label ?? "Cash on Delivery";
+    const orderNotes = [notes.trim(), `Payment: ${methodLabel}`].filter(Boolean).join(" — ");
     // Distribute delivery charge across first line item; keep totals accurate.
     const rows = cart.items.map((it, idx) => ({
       store_id: store.id,
@@ -59,8 +88,8 @@ function CheckoutPage() {
       customer_name: name.trim(),
       customer_phone: phone.trim(),
       customer_address: address.trim(),
-      notes: notes.trim() || null,
-      delivery_area: area === "inside" ? "ঢাকার ভিতরে" : "ঢাকার বাহিরে",
+      notes: orderNotes || null,
+      delivery_area: activeZone?.name ?? "",
       delivery_charge: idx === 0 ? delivery : 0,
     }));
     const { error } = await supabase.from("orders").insert(rows);
@@ -120,28 +149,59 @@ function CheckoutPage() {
 
             <div>
               <Label className="mb-2 block">{t.selectArea} *</Label>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <label className={`flex cursor-pointer items-center justify-between rounded-lg border-2 p-3 transition ${area === "inside" ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-                  <span className="flex items-center gap-2">
-                    <input type="radio" name="area" checked={area === "inside"} onChange={() => setArea("inside")} className="h-4 w-4" />
-                    <span className="font-semibold">{t.insideDhaka}</span>
-                  </span>
-                  <span className="text-sm font-bold">৳ {insideCharge}</span>
-                </label>
-                <label className={`flex cursor-pointer items-center justify-between rounded-lg border-2 p-3 transition ${area === "outside" ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-                  <span className="flex items-center gap-2">
-                    <input type="radio" name="area" checked={area === "outside"} onChange={() => setArea("outside")} className="h-4 w-4" />
-                    <span className="font-semibold">{t.outsideDhaka}</span>
-                  </span>
-                  <span className="text-sm font-bold">৳ {outsideCharge}</span>
-                </label>
+              <div className={`grid gap-2 ${zones.length > 1 ? "sm:grid-cols-2" : ""}`}>
+                {zones.map((z, i) => (
+                  <label key={i}
+                    className={`flex cursor-pointer items-center justify-between rounded-lg border-2 p-3 transition ${zoneIndex === i ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                    <span className="flex items-center gap-2">
+                      <input type="radio" name="zone" checked={zoneIndex === i} onChange={() => setZoneIndex(i)} className="h-4 w-4" />
+                      <span className="font-semibold">{z.name}</span>
+                    </span>
+                    <span className="text-sm font-bold">৳ {z.charge}</span>
+                  </label>
+                ))}
               </div>
             </div>
 
-            <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
-              <div className="font-semibold">{t.cod}</div>
-              <div className="text-slate-500">Pay in cash when you receive your order.</div>
+            {/* Payment methods */}
+            <div>
+              <Label className="mb-2 block">Payment method *</Label>
+              <div className="space-y-2">
+                {methods.map((m: any) => (
+                  <label key={m.key}
+                    className={`flex cursor-pointer items-start gap-3 rounded-lg border-2 p-3 transition ${paymentMethod === m.key ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                    <input type="radio" name="pay" checked={paymentMethod === m.key} onChange={() => setPaymentMethod(m.key)} className="mt-1 h-4 w-4" />
+                    <div className="flex-1">
+                      <div className="font-semibold">{m.label}</div>
+                      {m.key === "cod"
+                        ? <div className="text-xs text-slate-500">Pay in cash when you receive your order.</div>
+                        : m.number
+                          ? <div className="text-xs text-slate-500">Send money to <span className="font-mono font-semibold text-slate-700">{m.number}</span> and write the transaction ID in Notes.</div>
+                          : <div className="text-xs text-slate-500">Manual mobile payment.</div>}
+                    </div>
+                  </label>
+                ))}
+                {methods.length === 0 && (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                    No payment methods available. Please contact the store.
+                  </div>
+                )}
+              </div>
+              {store.payment_instructions && (
+                <p className="mt-2 text-xs text-slate-500">{store.payment_instructions}</p>
+              )}
             </div>
+
+            {holiday && (
+              <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                🏖️ {store.holiday_message?.trim() || "Store is currently closed. Orders are paused."}
+              </div>
+            )}
+            {belowMin && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                Minimum order is ৳{minOrder}. Add ৳{(minOrder - subtotal).toLocaleString()} more to place your order.
+              </div>
+            )}
           </div>
 
           <aside className="h-fit rounded-lg border border-slate-200 bg-white p-5 shadow-sm md:sticky md:top-6">
@@ -160,7 +220,7 @@ function CheckoutPage() {
               <div className="flex justify-between"><span>{t.deliveryCharge}</span><span>৳ {delivery.toLocaleString()}</span></div>
               <div className="mt-1 flex justify-between border-t pt-2 text-base font-bold"><span>{t.grandTotal}</span><span>৳ {grandTotal.toLocaleString()}</span></div>
             </div>
-            <Button type="submit" disabled={submitting || cart.items.length === 0}
+            <Button type="submit" disabled={submitting || cart.items.length === 0 || holiday || belowMin || methods.length === 0}
               className="mt-5 w-full" style={{ background: primary }}>
               {submitting ? "…" : t.placeOrder}
             </Button>
