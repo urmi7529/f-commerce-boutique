@@ -82,7 +82,7 @@ function MessagesPage() {
   const filtered = useMemo(() => {
     const s = query.trim().toLowerCase();
     if (!s) return messages;
-    return messages.filter((m) => [m.customer_name, m.customer_phone, m.customer_email, m.message, storeNames[m.store_id]]
+    return messages.filter((m) => [m.customer_name, m.customer_phone, m.customer_email, m.message, m.store_id ? storeNames[m.store_id] : null]
       .filter(Boolean).some((v) => String(v).toLowerCase().includes(s)));
   }, [messages, query, storeNames]);
 
