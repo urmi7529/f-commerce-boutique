@@ -165,7 +165,6 @@ export type Database = {
           category_id: string | null
           created_at: string
           description: string | null
-          download_url: string | null
           id: string
           image_url: string | null
           price: number
@@ -178,7 +177,6 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description?: string | null
-          download_url?: string | null
           id?: string
           image_url?: string | null
           price?: number
@@ -191,7 +189,6 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description?: string | null
-          download_url?: string | null
           id?: string
           image_url?: string | null
           price?: number
@@ -289,6 +286,35 @@ export type Database = {
           },
         ]
       }
+      store_domain_verifications: {
+        Row: {
+          created_at: string
+          store_id: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          store_id: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          store_id?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_domain_verifications_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_messages: {
         Row: {
           created_at: string
@@ -357,7 +383,6 @@ export type Database = {
           delivery_zones: Json
           domain_last_check_error: string | null
           domain_last_checked_at: string | null
-          domain_verification_token: string | null
           domain_verified: boolean
           favicon_url: string | null
           footer_about_url: string | null
@@ -425,7 +450,6 @@ export type Database = {
           delivery_zones?: Json
           domain_last_check_error?: string | null
           domain_last_checked_at?: string | null
-          domain_verification_token?: string | null
           domain_verified?: boolean
           favicon_url?: string | null
           footer_about_url?: string | null
@@ -493,7 +517,6 @@ export type Database = {
           delivery_zones?: Json
           domain_last_check_error?: string | null
           domain_last_checked_at?: string | null
-          domain_verification_token?: string | null
           domain_verified?: boolean
           favicon_url?: string | null
           footer_about_url?: string | null
