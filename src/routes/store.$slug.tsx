@@ -750,14 +750,25 @@ function StoreFooter({ store, isDigital }: { store: any; isDigital: boolean }) {
                 <a href={`tel:${store.footer_phone}`} className="transition hover:text-white" style={{ color: palette.muted }}>{store.footer_phone}</a>
               </li>
             )}
+            {(store.business_hours || store.business_days) && (
+              <li className="flex gap-2.5">
+                <Clock className="mt-0.5 h-4 w-4 shrink-0" style={{ color: palette.accent }} />
+                <span style={{ color: palette.muted }}>
+                  {store.business_hours}
+                  {store.business_days && <span className="block text-xs opacity-80">{store.business_days}</span>}
+                </span>
+              </li>
+            )}
           </ul>
-          {store.footer_facebook_url && (
-            <div className="flex items-center gap-2 pt-1">
-              <a href={store.footer_facebook_url} target="_blank" rel="noreferrer" aria-label="Facebook"
-                className="grid h-9 w-9 place-items-center rounded-full transition hover:scale-110 hover:text-white"
-                style={{ background: palette.surface, color: palette.muted, border: `1px solid ${palette.divider}` }}>
-                <Facebook className="h-4 w-4" />
-              </a>
+          {socials.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              {socials.map((s) => (
+                <a key={s.label} href={s.href} target="_blank" rel="noreferrer" aria-label={s.label}
+                  className="grid h-9 w-9 place-items-center rounded-full transition hover:scale-110 hover:text-white"
+                  style={{ background: palette.surface, color: palette.muted, border: `1px solid ${palette.divider}` }}>
+                  <s.Icon className="h-4 w-4" />
+                </a>
+              ))}
             </div>
           )}
         </div>
