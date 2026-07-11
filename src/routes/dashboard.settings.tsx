@@ -393,6 +393,199 @@ function SettingsPage() {
         </div>
       </div>
 
+      {/* SEO & Brand */}
+      <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-sm">
+        <div>
+          <Label className="text-base">SEO & Brand</Label>
+          <p className="text-xs text-muted-foreground mt-1">Google / Facebook e apnar store kemon dekhabe.</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2"><Label>Tagline (short one-line brand line)</Label>
+            <Input value={form.tagline ?? ""} onChange={(e) => setForm({ ...form, tagline: e.target.value })} placeholder="Bangladesh's freshest online shop" /></div>
+          <div className="sm:col-span-2"><Label>Meta title (browser tab + Google)</Label>
+            <Input maxLength={70} value={form.meta_title ?? ""} onChange={(e) => setForm({ ...form, meta_title: e.target.value })} placeholder={form.name ?? "Your Store"} />
+            <p className="mt-1 text-xs text-muted-foreground">Max 70 characters. Blank thakle store name use hobe.</p></div>
+          <div className="sm:col-span-2"><Label>Meta description (Google preview text)</Label>
+            <Textarea rows={2} maxLength={160} value={form.meta_description ?? ""} onChange={(e) => setForm({ ...form, meta_description: e.target.value })} placeholder="1-2 line description of your store" />
+            <p className="mt-1 text-xs text-muted-foreground">Max 160 characters.</p></div>
+          <div><Label>Favicon URL (browser tab icon)</Label>
+            <Input value={form.favicon_url ?? ""} onChange={(e) => setForm({ ...form, favicon_url: e.target.value })} placeholder="https://…/favicon.png" />
+            <p className="mt-1 text-xs text-muted-foreground">Recommended: 64×64 or 128×128 PNG.</p></div>
+          <div><Label>Share image (Facebook/WhatsApp preview)</Label>
+            <Input value={form.og_image_url ?? ""} onChange={(e) => setForm({ ...form, og_image_url: e.target.value })} placeholder="https://…/share.jpg" />
+            <p className="mt-1 text-xs text-muted-foreground">Recommended: 1200×630 JPG/PNG.</p></div>
+          <div className="sm:col-span-2"><Label>Brand primary color</Label>
+            <div className="flex items-center gap-2">
+              <Input type="color" className="h-10 w-16 p-1" value={form.brand_primary_color || "#10B981"} onChange={(e) => setForm({ ...form, brand_primary_color: e.target.value })} />
+              <Input className="flex-1" value={form.brand_primary_color ?? ""} onChange={(e) => setForm({ ...form, brand_primary_color: e.target.value })} placeholder="#10B981 (blank = default theme color)" />
+              {form.brand_primary_color && (
+                <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, brand_primary_color: null })}>Reset</Button>
+              )}
+            </div></div>
+        </div>
+      </div>
+
+      {/* Announcement bar */}
+      <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-base">Announcement bar</Label>
+            <p className="text-xs text-muted-foreground mt-1">Storefront er ekdom uporer rolling message (offer, delivery notice, etc.)</p>
+          </div>
+          <Switch checked={!!form.announcement_enabled} onCheckedChange={(v) => setForm({ ...form, announcement_enabled: v })} />
+        </div>
+        <div>
+          <Label>Message</Label>
+          <Input value={form.announcement_text ?? ""} onChange={(e) => setForm({ ...form, announcement_text: e.target.value })} placeholder="🎉 Free delivery on orders over ৳1000!" />
+        </div>
+      </div>
+
+      {/* Business hours & holiday */}
+      <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-sm">
+        <div>
+          <Label className="text-base">Business hours & Holiday mode</Label>
+          <p className="text-xs text-muted-foreground mt-1">Store open time show hobe footer e. Holiday mode on korle order neya bondho.</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div><Label>Open hours</Label>
+            <Input value={form.business_hours ?? ""} onChange={(e) => setForm({ ...form, business_hours: e.target.value })} placeholder="10:00 AM – 10:00 PM" /></div>
+          <div><Label>Open days</Label>
+            <Input value={form.business_days ?? ""} onChange={(e) => setForm({ ...form, business_days: e.target.value })} placeholder="Sat – Thu (Friday closed)" /></div>
+        </div>
+        <div className="flex items-center justify-between rounded-lg border border-border p-3">
+          <div>
+            <div className="font-semibold text-sm">Holiday mode</div>
+            <p className="text-xs text-muted-foreground">On korle store e big red banner + checkout disabled.</p>
+          </div>
+          <Switch checked={!!form.holiday_mode} onCheckedChange={(v) => setForm({ ...form, holiday_mode: v })} />
+        </div>
+        {form.holiday_mode && (
+          <div><Label>Holiday message</Label>
+            <Textarea rows={2} value={form.holiday_message ?? ""} onChange={(e) => setForm({ ...form, holiday_message: e.target.value })} placeholder="আমরা Eid chuti-te achi. 20 April theke order neya shuru hobe." /></div>
+        )}
+      </div>
+
+      {/* Minimum order */}
+      <div className="rounded-2xl border border-border bg-card p-6 space-y-3 shadow-sm">
+        <Label className="text-base">Minimum order amount (৳)</Label>
+        <Input type="number" min={0} value={form.min_order_amount ?? 0} onChange={(e) => setForm({ ...form, min_order_amount: e.target.value })} placeholder="0" />
+        <p className="text-xs text-muted-foreground">0 = no minimum. Set korle checkout e ei amount er niche order block hobe.</p>
+      </div>
+
+      {/* Delivery zones */}
+      <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-sm">
+        <div>
+          <Label className="text-base">Delivery zones (custom areas)</Label>
+          <p className="text-xs text-muted-foreground mt-1">
+            Add korle checkout e ei zone gulo dekhabe (Inside/Outside Dhaka replace hobe). Empty rakhle Inside/Outside Dhaka use hobe.
+          </p>
+        </div>
+        <div className="space-y-2">
+          {(form.delivery_zones ?? []).map((z: any, i: number) => (
+            <div key={i} className="grid gap-2 sm:grid-cols-[1fr_140px_auto]">
+              <Input placeholder="Zone name (e.g. Dhaka City)" value={z.name ?? ""}
+                onChange={(e) => {
+                  const next = [...(form.delivery_zones ?? [])];
+                  next[i] = { ...next[i], name: e.target.value };
+                  setForm({ ...form, delivery_zones: next });
+                }} />
+              <Input type="number" min={0} placeholder="Charge ৳" value={z.charge ?? 0}
+                onChange={(e) => {
+                  const next = [...(form.delivery_zones ?? [])];
+                  next[i] = { ...next[i], charge: e.target.value };
+                  setForm({ ...form, delivery_zones: next });
+                }} />
+              <Button type="button" variant="outline" size="sm"
+                onClick={() => setForm({ ...form, delivery_zones: (form.delivery_zones ?? []).filter((_: any, j: number) => j !== i) })}>
+                Remove
+              </Button>
+            </div>
+          ))}
+          <Button type="button" variant="outline" size="sm"
+            onClick={() => setForm({ ...form, delivery_zones: [...(form.delivery_zones ?? []), { name: "", charge: 0 }] })}>
+            + Add zone
+          </Button>
+        </div>
+      </div>
+
+      {/* Payment methods */}
+      <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-sm">
+        <div>
+          <Label className="text-base">Payment methods (checkout options)</Label>
+          <p className="text-xs text-muted-foreground mt-1">Customer ki ki payment method use korte parben — toggle korun.</p>
+        </div>
+        {[
+          { key: "cod", label: "Cash on Delivery (COD)", hasNumber: false },
+          { key: "bkash", label: "bKash (manual)", hasNumber: true },
+          { key: "nagad", label: "Nagad (manual)", hasNumber: true },
+          { key: "rocket", label: "Rocket (manual)", hasNumber: true },
+        ].map(m => {
+          const enKey = `payment_${m.key}_enabled` as const;
+          const numKey = `payment_${m.key}_number` as const;
+          return (
+            <div key={m.key} className="rounded-lg border border-border p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="font-semibold text-sm">{m.label}</div>
+                <Switch checked={!!form[enKey]} onCheckedChange={(v) => setForm({ ...form, [enKey]: v })} />
+              </div>
+              {m.hasNumber && form[enKey] && (
+                <Input value={form[numKey] ?? ""} onChange={(e) => setForm({ ...form, [numKey]: e.target.value })}
+                  placeholder={`${m.label.split(" ")[0]} personal/merchant number`} />
+              )}
+            </div>
+          );
+        })}
+        <div>
+          <Label>Extra payment instructions (shown on checkout)</Label>
+          <Textarea rows={2} value={form.payment_instructions ?? ""} onChange={(e) => setForm({ ...form, payment_instructions: e.target.value })}
+            placeholder="Send money kore transaction ID Notes e likhun." />
+        </div>
+      </div>
+
+      {/* Policy pages: Return + Privacy */}
+      <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-sm">
+        <div>
+          <Label className="text-base">Policy pages (footer)</Label>
+          <p className="text-xs text-muted-foreground mt-1">Text likhle footer e page akare show hobe. URL diye external link o dite paren.</p>
+        </div>
+        <div>
+          <Label>Return & Refund Policy</Label>
+          <Textarea rows={4} value={form.footer_return_text ?? ""}
+            onChange={(e) => setForm({ ...form, footer_return_text: e.target.value })}
+            placeholder="Write your return & refund policy here." />
+          <Input className="mt-1" value={form.footer_return_url ?? ""}
+            onChange={(e) => setForm({ ...form, footer_return_url: e.target.value })}
+            placeholder="https://… (optional external URL — used only if text is empty)" />
+        </div>
+        <div>
+          <Label>Privacy Policy</Label>
+          <Textarea rows={4} value={form.footer_privacy_text ?? ""}
+            onChange={(e) => setForm({ ...form, footer_privacy_text: e.target.value })}
+            placeholder="Write your privacy policy here." />
+          <Input className="mt-1" value={form.footer_privacy_url ?? ""}
+            onChange={(e) => setForm({ ...form, footer_privacy_url: e.target.value })}
+            placeholder="https://… (optional external URL — used only if text is empty)" />
+        </div>
+      </div>
+
+      {/* Social links */}
+      <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-sm">
+        <div>
+          <Label className="text-base">Social media links</Label>
+          <p className="text-xs text-muted-foreground mt-1">Footer e social icon akare show hobe.</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div><Label>Instagram URL</Label>
+            <Input value={form.instagram_url ?? ""} onChange={(e) => setForm({ ...form, instagram_url: e.target.value })} placeholder="https://instagram.com/…" /></div>
+          <div><Label>YouTube URL</Label>
+            <Input value={form.youtube_url ?? ""} onChange={(e) => setForm({ ...form, youtube_url: e.target.value })} placeholder="https://youtube.com/@…" /></div>
+          <div><Label>TikTok URL</Label>
+            <Input value={form.tiktok_url ?? ""} onChange={(e) => setForm({ ...form, tiktok_url: e.target.value })} placeholder="https://tiktok.com/@…" /></div>
+          <div><Label>WhatsApp Channel URL</Label>
+            <Input value={form.whatsapp_channel_url ?? ""} onChange={(e) => setForm({ ...form, whatsapp_channel_url: e.target.value })} placeholder="https://whatsapp.com/channel/…" /></div>
+        </div>
+      </div>
+
       {/* Custom Domain */}
       <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-sm">
         <div className="flex items-center gap-2">
