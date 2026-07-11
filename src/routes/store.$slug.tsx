@@ -52,6 +52,7 @@ function StoreHome({ slug }: { slug: string }) {
   const [query, setQuery] = useState("");
   const [priceMax, setPriceMax] = useState<number | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [deactivated, setDeactivated] = useState(false);
   const cart = useCart(slug);
   const t = T[lang];
 
@@ -63,6 +64,9 @@ function StoreHome({ slug }: { slug: string }) {
     (async () => {
       const { data: s } = await supabase.from("stores").select("*").eq("slug", slug).maybeSingle();
       if (!s) { setNotFound(true); return; }
+      // Check subscription status via SECURITY DEFINER RPC
+      const { data: active } = await supabase.rpc("is_store_active", { _store_id: s.id });
+      if (active === false) { setStore(s); setDeactivated(true); return; }
       setStore(s);
       const { data: p } = await supabase.from("products").select("*")
         .eq("store_id", s.id).eq("active", true).order("created_at", { ascending: false });
