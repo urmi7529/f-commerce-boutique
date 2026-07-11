@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingBag, Package, ShoppingCart, Settings, LogOut, Store as StoreIcon, ExternalLink, Tag, Star, Users as UsersIcon, Clock, Ban, CreditCard, Wallet, MessageCircle } from "lucide-react";
+import { ShoppingBag, Package, ShoppingCart, Settings, LogOut, Store as StoreIcon, ExternalLink, Tag, Star, Users as UsersIcon, Ban, CreditCard, Wallet, MessageCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({ component: DashboardLayout });
@@ -82,12 +82,22 @@ function DashboardLayout() {
     return <div className="grid min-h-screen place-items-center text-muted-foreground">Loading…</div>;
   }
 
-  if (!isAdmin && accessStatus !== "approved") {
-    return <AccessGate status={accessStatus} onSignOut={() => { signOut(); navigate({ to: "/" }); }} />;
+  if (!isAdmin && accessStatus === "blocked") {
+    return <BlockedGate onSignOut={() => { signOut(); navigate({ to: "/" }); }} />;
   }
 
+  // Pending users: force them into the Billing page so they can submit payment.
+  const isPending = !isAdmin && accessStatus === "pending";
+  useEffect(() => {
+    if (isPending && !loc.pathname.startsWith("/dashboard/billing") && !loc.pathname.startsWith("/dashboard/messages")) {
+      navigate({ to: "/dashboard/billing", replace: true } as any);
+    }
+  }, [isPending, loc.pathname, navigate]);
+
   const nav = [
-    ...(store ? [
+    ...(isPending ? [
+      { to: "/dashboard/billing", label: "Billing", icon: CreditCard },
+    ] : store ? [
       { to: "/dashboard", label: "Overview", icon: StoreIcon, exact: true },
       { to: "/dashboard/products", label: "Products", icon: Package },
       { to: "/dashboard/categories", label: "Categories", icon: Tag },
@@ -146,7 +156,16 @@ function DashboardLayout() {
           })}
         </aside>
         <main>
-          {!store && !isAdmin && loc.pathname === "/dashboard"
+          {isPending && (
+            <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <p className="font-semibold">Complete your payment to activate your account</p>
+                <p className="mt-1 text-amber-800">Choose a plan below, send the payment, then submit the transaction ID and screenshot. Admin will approve and unlock your dashboard.</p>
+              </div>
+            </div>
+          )}
+          {!isPending && !store && !isAdmin && loc.pathname === "/dashboard"
             ? <CreateStore onCreated={setStore} userId={user!.id} />
             : <Outlet />}
         </main>
@@ -155,22 +174,15 @@ function DashboardLayout() {
   );
 }
 
-function AccessGate({ status, onSignOut }: { status: "pending" | "approved" | "blocked"; onSignOut: () => void }) {
-  const blocked = status === "blocked";
+function BlockedGate({ onSignOut }: { onSignOut: () => void }) {
   return (
     <div className="grid min-h-screen place-items-center px-4" style={{ background: "var(--gradient-soft)" }}>
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-xl">
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/10">
-          {blocked ? <Ban className="h-7 w-7 text-destructive" /> : <Clock className="h-7 w-7 text-primary" />}
+          <Ban className="h-7 w-7 text-destructive" />
         </div>
-        <h1 className="mt-4 text-2xl font-bold">
-          {blocked ? "Access blocked" : "Waiting for approval"}
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {blocked
-            ? "Your account has been blocked by the administrator. Please contact support if you think this is a mistake."
-            : "Thanks for signing up! An administrator needs to approve your account before you can create a store. You'll get access as soon as it's reviewed."}
-        </p>
+        <h1 className="mt-4 text-2xl font-bold">Access blocked</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Your account has been blocked by the administrator. Please contact support if you think this is a mistake.</p>
         <Button variant="outline" className="mt-6 w-full" onClick={onSignOut}>
           <LogOut className="mr-2 h-4 w-4" /> Sign out
         </Button>
