@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { WhatsAppFab } from "@/components/whatsapp-fab";
 import { T, type Lang } from "@/lib/i18n";
 import { useCart } from "@/lib/use-cart";
@@ -626,14 +627,18 @@ function StoreFooter({ store, isDigital }: { store: any; isDigital: boolean }) {
     divider: "rgba(255,255,255,0.08)",
   };
 
-  const links = [
+  const [openPage, setOpenPage] = useState<null | { title: string; body: string }>(null);
+
+  type FooterLink = { label: string; href?: string; text?: string };
+  const links: FooterLink[] = [
     { label: "About Us", href: store.footer_about_url },
     { label: "Facebook Page", href: store.footer_facebook_url },
-    { label: "Terms & Condition", href: store.footer_terms_url },
-    { label: "Warranty Policy", href: store.footer_warranty_url },
-  ].filter(l => l.href);
+    { label: "Terms & Condition", href: store.footer_terms_url, text: store.footer_terms_text },
+    { label: "Warranty Policy", href: store.footer_warranty_url, text: store.footer_warranty_text },
+  ].filter(l => (l.text && l.text.trim()) || l.href);
 
   return (
+    <>
     <footer className="mt-16" style={{ background: palette.bg, color: palette.text }}>
       {/* Newsletter band */}
       <div className="relative overflow-hidden border-b" style={{ borderColor: palette.divider }}>
@@ -714,15 +719,25 @@ function StoreFooter({ store, isDigital }: { store: any; isDigital: boolean }) {
           <h3 className="text-sm font-bold uppercase tracking-wider" style={{ color: palette.text }}>Information</h3>
           <div className="mt-2 h-0.5 w-8 rounded-full" style={{ background: palette.accent }} />
           <ul className="mt-5 space-y-3 text-sm">
-            {(links.length > 0 ? links : [{ label: "About Us", href: "#" }, { label: "Facebook Page", href: "#" }]).map(l => (
-              <li key={l.label}>
-                <a href={l.href} target="_blank" rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 transition hover:text-white"
-                  style={{ color: palette.muted }}>
-                  <ChevronRight className="h-3 w-3 opacity-60" /> {l.label}
-                </a>
-              </li>
-            ))}
+            {(links.length > 0 ? links : [{ label: "About Us", href: "#" } as FooterLink, { label: "Facebook Page", href: "#" } as FooterLink]).map(l => {
+              const hasText = !!(l.text && l.text.trim());
+              const cls = "inline-flex items-center gap-1.5 transition hover:text-white text-left";
+              return (
+                <li key={l.label}>
+                  {hasText ? (
+                    <button type="button" onClick={() => setOpenPage({ title: l.label, body: l.text! })}
+                      className={cls} style={{ color: palette.muted }}>
+                      <ChevronRight className="h-3 w-3 opacity-60" /> {l.label}
+                    </button>
+                  ) : (
+                    <a href={l.href} target="_blank" rel="noreferrer"
+                      className={cls} style={{ color: palette.muted }}>
+                      <ChevronRight className="h-3 w-3 opacity-60" /> {l.label}
+                    </a>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
 
@@ -768,5 +783,16 @@ function StoreFooter({ store, isDigital }: { store: any; isDigital: boolean }) {
         </div>
       </div>
     </footer>
+    <Dialog open={!!openPage} onOpenChange={(v) => !v && setOpenPage(null)}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{openPage?.title}</DialogTitle>
+        </DialogHeader>
+        <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+          {openPage?.body}
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
