@@ -782,5 +782,16 @@ function StoreFooter({ store, isDigital }: { store: any; isDigital: boolean }) {
         </div>
       </div>
     </footer>
+    <Dialog open={!!openPage} onOpenChange={(v) => !v && setOpenPage(null)}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{openPage?.title}</DialogTitle>
+        </DialogHeader>
+        <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+          {openPage?.body}
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
