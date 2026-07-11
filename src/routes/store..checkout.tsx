@@ -24,7 +24,8 @@ function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [area, setArea] = useState<"inside" | "outside">("inside");
+  const [zoneIndex, setZoneIndex] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<string>("cod");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -37,17 +38,45 @@ function CheckoutPage() {
   if (!store) return <div className="grid min-h-screen place-items-center text-slate-500">Loading…</div>;
 
   const primary = store.theme === "digital" ? "#6366F1" : "#059669";
-  const insideCharge = Number(store.delivery_inside_dhaka ?? 60);
-  const outsideCharge = Number(store.delivery_outside_dhaka ?? 100);
-  const delivery = area === "inside" ? insideCharge : outsideCharge;
+
+  // Zones: use custom delivery_zones if set, else legacy Inside/Outside Dhaka
+  const customZones = Array.isArray(store.delivery_zones) ? store.delivery_zones : [];
+  const zones: Array<{ name: string; charge: number }> = customZones.length > 0
+    ? customZones.map((z: any) => ({ name: String(z.name), charge: Number(z.charge ?? 0) }))
+    : [
+        { name: "ঢাকার ভিতরে (Inside Dhaka)", charge: Number(store.delivery_inside_dhaka ?? 60) },
+        { name: "ঢাকার বাহিরে (Outside Dhaka)", charge: Number(store.delivery_outside_dhaka ?? 100) },
+      ];
+  const activeZone = zones[Math.min(zoneIndex, zones.length - 1)] ?? zones[0];
+  const delivery = activeZone?.charge ?? 0;
   const subtotal = cart.subtotal;
   const grandTotal = subtotal + delivery;
 
+  // Payment methods
+  const methods: Array<{ key: string; label: string; number?: string }> = [
+    store.payment_cod_enabled !== false ? { key: "cod", label: "Cash on Delivery" } : null,
+    store.payment_bkash_enabled ? { key: "bkash", label: "bKash", number: store.payment_bkash_number } : null,
+    store.payment_nagad_enabled ? { key: "nagad", label: "Nagad", number: store.payment_nagad_number } : null,
+    store.payment_rocket_enabled ? { key: "rocket", label: "Rocket", number: store.payment_rocket_number } : null,
+  ].filter(Boolean) as any;
+  if (methods.length > 0 && !methods.find((m: any) => m.key === paymentMethod)) {
+    // ensure a valid selection
+    setTimeout(() => setPaymentMethod(methods[0].key), 0);
+  }
+
+  const minOrder = Number(store.min_order_amount ?? 0);
+  const belowMin = minOrder > 0 && subtotal < minOrder;
+  const holiday = !!store.holiday_mode;
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (holiday) return toast.error(store.holiday_message?.trim() || "Store is currently closed for holidays.");
     if (cart.items.length === 0) return toast.error(t.emptyCart);
+    if (belowMin) return toast.error(`Minimum order is ৳${minOrder}. Please add more items.`);
     if (!name.trim() || !phone.trim() || !address.trim()) return toast.error("Please fill all required fields");
     setSubmitting(true);
+    const methodLabel = methods.find((m: any) => m.key === paymentMethod)?.label ?? "Cash on Delivery";
+    const orderNotes = [notes.trim(), `Payment: ${methodLabel}`].filter(Boolean).join(" — ");
     // Distribute delivery charge across first line item; keep totals accurate.
     const rows = cart.items.map((it, idx) => ({
       store_id: store.id,
@@ -59,8 +88,8 @@ function CheckoutPage() {
       customer_name: name.trim(),
       customer_phone: phone.trim(),
       customer_address: address.trim(),
-      notes: notes.trim() || null,
-      delivery_area: area === "inside" ? "ঢাকার ভিতরে" : "ঢাকার বাহিরে",
+      notes: orderNotes || null,
+      delivery_area: activeZone?.name ?? "",
       delivery_charge: idx === 0 ? delivery : 0,
     }));
     const { error } = await supabase.from("orders").insert(rows);
