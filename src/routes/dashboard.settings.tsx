@@ -374,12 +374,6 @@ function SettingsPage() {
           <div className="sm:col-span-2"><Label>Meta description (Google preview text)</Label>
             <Textarea rows={2} maxLength={160} value={form.meta_description ?? ""} onChange={(e) => setForm({ ...form, meta_description: e.target.value })} placeholder="1-2 line description of your store" />
             <p className="mt-1 text-xs text-muted-foreground">Max 160 characters.</p></div>
-          <div><Label>Favicon URL (browser tab icon)</Label>
-            <Input value={form.favicon_url ?? ""} onChange={(e) => setForm({ ...form, favicon_url: e.target.value })} placeholder="https://…/favicon.png" />
-            <p className="mt-1 text-xs text-muted-foreground">Recommended: 64×64 or 128×128 PNG.</p></div>
-          <div><Label>Share image (Facebook/WhatsApp preview)</Label>
-            <Input value={form.og_image_url ?? ""} onChange={(e) => setForm({ ...form, og_image_url: e.target.value })} placeholder="https://…/share.jpg" />
-            <p className="mt-1 text-xs text-muted-foreground">Recommended: 1200×630 JPG/PNG.</p></div>
           <div className="sm:col-span-2"><Label>Brand primary color</Label>
             <div className="flex items-center gap-2">
               <Input type="color" className="h-10 w-16 p-1" value={form.brand_primary_color || "#10B981"} onChange={(e) => setForm({ ...form, brand_primary_color: e.target.value })} />
