@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Upload, Copy, CheckCircle2, Clock, XCircle, CreditCard } from "lucide-react";
 
@@ -34,6 +35,7 @@ function BillingPage() {
   const [note, setNote] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -89,7 +91,7 @@ function BillingPage() {
     });
     setSubmitting(false);
     if (error) return toast.error(error.message);
-    toast.success("Payment submitted for review");
+    setShowSuccess(true);
     setTxnId(""); setSenderNumber(""); setNote(""); setFile(null); setAmount("");
     const { data: pay } = await supabase.from("subscription_payments").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     setPayments((pay ?? []) as Payment[]);
@@ -225,6 +227,29 @@ function BillingPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-2 grid h-14 w-14 place-items-center rounded-full bg-emerald-100">
+              <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+            </div>
+            <DialogTitle className="text-center text-xl">পেমেন্ট সফলভাবে জমা হয়েছে</DialogTitle>
+            <DialogDescription className="text-center leading-relaxed pt-2">
+              আপনার পেমেন্টটি সফলভাবে সাবমিট হয়েছে। আমাদের অ্যাডমিন টিম যাচাই করে খুব শীঘ্রই আপনার অ্যাকাউন্ট অ্যাক্টিভ করে দিবে।
+              <br /><br />
+              অনুগ্রহ করে কিছুক্ষণ অপেক্ষা করুন — অ্যাপ্রুভাল হয়ে গেলে আপনার ড্যাশবোর্ড স্বয়ংক্রিয়ভাবে আনলক হয়ে যাবে।
+              <br /><br />
+              <span className="text-xs text-muted-foreground">
+                Your payment has been submitted successfully. Our admin team will verify it and activate your account very soon. Please wait a moment — your dashboard will unlock automatically once approved.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button className="w-full" onClick={() => setShowSuccess(false)}>বুঝেছি (OK)</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
