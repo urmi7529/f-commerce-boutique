@@ -20,6 +20,7 @@ function SettingsPage() {
   const [form, setForm] = useState<any>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [saving, setSaving] = useState(false);
   const [domainInput, setDomainInput] = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -43,8 +44,8 @@ function SettingsPage() {
 
   if (!form) return null;
 
-  const upload = async (file: File, kind: "logo" | "banner") => {
-    const setBusy = kind === "logo" ? setUploadingLogo : setUploadingBanner;
+  const upload = async (file: File, kind: "logo" | "banner" | "favicon") => {
+    const setBusy = kind === "logo" ? setUploadingLogo : kind === "banner" ? setUploadingBanner : setUploadingFavicon;
     setBusy(true);
     const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
     const path = `${form.id}/${kind}-${Date.now()}-${safeName}`;
@@ -52,12 +53,12 @@ function SettingsPage() {
     if (upErr) { toast.error(upErr.message); setBusy(false); return; }
     const { data } = supabase.storage.from("store-assets").getPublicUrl(path);
     const url = data.publicUrl;
-    const patch: any = kind === "logo" ? { logo_url: url } : { banner_url: url };
+    const patch: any = kind === "logo" ? { logo_url: url } : kind === "banner" ? { banner_url: url } : { favicon_url: url };
     setForm({ ...form, ...patch });
     // Persist immediately so it survives even if the user forgets to click Save
     const { error: saveErr } = await supabase.from("stores").update(patch).eq("id", form.id);
     if (saveErr) toast.error(saveErr.message);
-    else { toast.success(`${kind === "logo" ? "Logo" : "Banner"} updated`); reload(); }
+    else { toast.success(`${kind === "logo" ? "Logo" : kind === "banner" ? "Banner" : "Favicon"} updated`); reload(); }
     setBusy(false);
   };
 
@@ -208,6 +209,23 @@ function SettingsPage() {
           {uploadingLogo && <p className="mt-2 text-xs text-muted-foreground">Uploading…</p>}
           {form.logo_url && <img src={form.logo_url} alt="" className="mt-2 h-20 w-20 rounded-lg object-cover border border-border" />}
         </div>
+        <div>
+          <Label>Favicon (browser tab icon)</Label>
+          <p className="text-xs text-muted-foreground mb-2">Recommended size: <strong>64 × 64 px</strong> or <strong>128 × 128 px</strong> (square PNG/ICO)</p>
+          <Input type="file" accept="image/png,image/x-icon,image/vnd.microsoft.icon,image/svg+xml,image/jpeg" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0], "favicon")} disabled={uploadingFavicon} />
+          {uploadingFavicon && <p className="mt-2 text-xs text-muted-foreground">Uploading…</p>}
+          {form.favicon_url && (
+            <div className="mt-2 flex items-center gap-3">
+              <img src={form.favicon_url} alt="" className="h-10 w-10 rounded border border-border object-contain bg-white p-1" />
+              <Button type="button" variant="outline" size="sm"
+                onClick={async () => {
+                  setForm({ ...form, favicon_url: null });
+                  await supabase.from("stores").update({ favicon_url: null }).eq("id", form.id);
+                  reload(); toast.success("Favicon removed");
+                }}>Remove</Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Banner */}
@@ -316,10 +334,26 @@ function SettingsPage() {
               onChange={(e) => setForm({ ...form, footer_warranty_url: e.target.value })}
               placeholder="https://… (optional, used only if text is empty)" />
           </div>
-          <div><Label>Google Play URL</Label>
-            <Input value={form.footer_playstore_url ?? ""} onChange={(e) => setForm({ ...form, footer_playstore_url: e.target.value })} placeholder="https://play.google.com/…" /></div>
-          <div><Label>App Store URL</Label>
-            <Input value={form.footer_appstore_url ?? ""} onChange={(e) => setForm({ ...form, footer_appstore_url: e.target.value })} placeholder="https://apps.apple.com/…" /></div>
+          <div className="sm:col-span-2">
+            <Label>Return & Refund Policy</Label>
+            <Textarea rows={5} value={form.footer_return_text ?? ""}
+              onChange={(e) => setForm({ ...form, footer_return_text: e.target.value })}
+              placeholder="Write your return & refund policy here." />
+            <p className="mt-1 text-xs text-muted-foreground">Or provide an external URL instead:</p>
+            <Input className="mt-1" value={form.footer_return_url ?? ""}
+              onChange={(e) => setForm({ ...form, footer_return_url: e.target.value })}
+              placeholder="https://… (optional, used only if text is empty)" />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>Privacy Policy</Label>
+            <Textarea rows={5} value={form.footer_privacy_text ?? ""}
+              onChange={(e) => setForm({ ...form, footer_privacy_text: e.target.value })}
+              placeholder="Write your privacy policy here." />
+            <p className="mt-1 text-xs text-muted-foreground">Or provide an external URL instead:</p>
+            <Input className="mt-1" value={form.footer_privacy_url ?? ""}
+              onChange={(e) => setForm({ ...form, footer_privacy_url: e.target.value })}
+              placeholder="https://… (optional, used only if text is empty)" />
+          </div>
           <div className="sm:col-span-2"><Label>Copyright line</Label>
             <Input value={form.footer_copyright ?? ""} onChange={(e) => setForm({ ...form, footer_copyright: e.target.value })} placeholder={`${form.name ?? "Your Store"} © All rights reserved.`} /></div>
         </div>
@@ -340,12 +374,6 @@ function SettingsPage() {
           <div className="sm:col-span-2"><Label>Meta description (Google preview text)</Label>
             <Textarea rows={2} maxLength={160} value={form.meta_description ?? ""} onChange={(e) => setForm({ ...form, meta_description: e.target.value })} placeholder="1-2 line description of your store" />
             <p className="mt-1 text-xs text-muted-foreground">Max 160 characters.</p></div>
-          <div><Label>Favicon URL (browser tab icon)</Label>
-            <Input value={form.favicon_url ?? ""} onChange={(e) => setForm({ ...form, favicon_url: e.target.value })} placeholder="https://…/favicon.png" />
-            <p className="mt-1 text-xs text-muted-foreground">Recommended: 64×64 or 128×128 PNG.</p></div>
-          <div><Label>Share image (Facebook/WhatsApp preview)</Label>
-            <Input value={form.og_image_url ?? ""} onChange={(e) => setForm({ ...form, og_image_url: e.target.value })} placeholder="https://…/share.jpg" />
-            <p className="mt-1 text-xs text-muted-foreground">Recommended: 1200×630 JPG/PNG.</p></div>
           <div className="sm:col-span-2"><Label>Brand primary color</Label>
             <div className="flex items-center gap-2">
               <Input type="color" className="h-10 w-16 p-1" value={form.brand_primary_color || "#10B981"} onChange={(e) => setForm({ ...form, brand_primary_color: e.target.value })} />
@@ -474,32 +502,6 @@ function SettingsPage() {
         </div>
       </div>
 
-      {/* Policy pages: Return + Privacy */}
-      <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-sm">
-        <div>
-          <Label className="text-base">Policy pages (footer)</Label>
-          <p className="text-xs text-muted-foreground mt-1">Text likhle footer e page akare show hobe. URL diye external link o dite paren.</p>
-        </div>
-        <div>
-          <Label>Return & Refund Policy</Label>
-          <Textarea rows={4} value={form.footer_return_text ?? ""}
-            onChange={(e) => setForm({ ...form, footer_return_text: e.target.value })}
-            placeholder="Write your return & refund policy here." />
-          <Input className="mt-1" value={form.footer_return_url ?? ""}
-            onChange={(e) => setForm({ ...form, footer_return_url: e.target.value })}
-            placeholder="https://… (optional external URL — used only if text is empty)" />
-        </div>
-        <div>
-          <Label>Privacy Policy</Label>
-          <Textarea rows={4} value={form.footer_privacy_text ?? ""}
-            onChange={(e) => setForm({ ...form, footer_privacy_text: e.target.value })}
-            placeholder="Write your privacy policy here." />
-          <Input className="mt-1" value={form.footer_privacy_url ?? ""}
-            onChange={(e) => setForm({ ...form, footer_privacy_url: e.target.value })}
-            placeholder="https://… (optional external URL — used only if text is empty)" />
-        </div>
-      </div>
-
       {/* Social links */}
       <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-sm">
         <div>
@@ -515,6 +517,10 @@ function SettingsPage() {
             <Input value={form.tiktok_url ?? ""} onChange={(e) => setForm({ ...form, tiktok_url: e.target.value })} placeholder="https://tiktok.com/@…" /></div>
           <div><Label>WhatsApp Channel URL</Label>
             <Input value={form.whatsapp_channel_url ?? ""} onChange={(e) => setForm({ ...form, whatsapp_channel_url: e.target.value })} placeholder="https://whatsapp.com/channel/…" /></div>
+          <div><Label>Google Play URL</Label>
+            <Input value={form.footer_playstore_url ?? ""} onChange={(e) => setForm({ ...form, footer_playstore_url: e.target.value })} placeholder="https://play.google.com/…" /></div>
+          <div><Label>App Store URL</Label>
+            <Input value={form.footer_appstore_url ?? ""} onChange={(e) => setForm({ ...form, footer_appstore_url: e.target.value })} placeholder="https://apps.apple.com/…" /></div>
         </div>
       </div>
 
