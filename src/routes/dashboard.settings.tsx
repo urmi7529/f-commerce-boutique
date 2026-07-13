@@ -502,32 +502,6 @@ function SettingsPage() {
         </div>
       </div>
 
-      {/* Policy pages: Return + Privacy */}
-      <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-sm">
-        <div>
-          <Label className="text-base">Policy pages (footer)</Label>
-          <p className="text-xs text-muted-foreground mt-1">Text likhle footer e page akare show hobe. URL diye external link o dite paren.</p>
-        </div>
-        <div>
-          <Label>Return & Refund Policy</Label>
-          <Textarea rows={4} value={form.footer_return_text ?? ""}
-            onChange={(e) => setForm({ ...form, footer_return_text: e.target.value })}
-            placeholder="Write your return & refund policy here." />
-          <Input className="mt-1" value={form.footer_return_url ?? ""}
-            onChange={(e) => setForm({ ...form, footer_return_url: e.target.value })}
-            placeholder="https://… (optional external URL — used only if text is empty)" />
-        </div>
-        <div>
-          <Label>Privacy Policy</Label>
-          <Textarea rows={4} value={form.footer_privacy_text ?? ""}
-            onChange={(e) => setForm({ ...form, footer_privacy_text: e.target.value })}
-            placeholder="Write your privacy policy here." />
-          <Input className="mt-1" value={form.footer_privacy_url ?? ""}
-            onChange={(e) => setForm({ ...form, footer_privacy_url: e.target.value })}
-            placeholder="https://… (optional external URL — used only if text is empty)" />
-        </div>
-      </div>
-
       {/* Social links */}
       <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-sm">
         <div>
@@ -543,6 +517,10 @@ function SettingsPage() {
             <Input value={form.tiktok_url ?? ""} onChange={(e) => setForm({ ...form, tiktok_url: e.target.value })} placeholder="https://tiktok.com/@…" /></div>
           <div><Label>WhatsApp Channel URL</Label>
             <Input value={form.whatsapp_channel_url ?? ""} onChange={(e) => setForm({ ...form, whatsapp_channel_url: e.target.value })} placeholder="https://whatsapp.com/channel/…" /></div>
+          <div><Label>Google Play URL</Label>
+            <Input value={form.footer_playstore_url ?? ""} onChange={(e) => setForm({ ...form, footer_playstore_url: e.target.value })} placeholder="https://play.google.com/…" /></div>
+          <div><Label>App Store URL</Label>
+            <Input value={form.footer_appstore_url ?? ""} onChange={(e) => setForm({ ...form, footer_appstore_url: e.target.value })} placeholder="https://apps.apple.com/…" /></div>
         </div>
       </div>
 
