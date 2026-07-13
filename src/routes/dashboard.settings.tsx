@@ -20,6 +20,7 @@ function SettingsPage() {
   const [form, setForm] = useState<any>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [saving, setSaving] = useState(false);
   const [domainInput, setDomainInput] = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -43,8 +44,8 @@ function SettingsPage() {
 
   if (!form) return null;
 
-  const upload = async (file: File, kind: "logo" | "banner") => {
-    const setBusy = kind === "logo" ? setUploadingLogo : setUploadingBanner;
+  const upload = async (file: File, kind: "logo" | "banner" | "favicon") => {
+    const setBusy = kind === "logo" ? setUploadingLogo : kind === "banner" ? setUploadingBanner : setUploadingFavicon;
     setBusy(true);
     const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
     const path = `${form.id}/${kind}-${Date.now()}-${safeName}`;
@@ -52,12 +53,12 @@ function SettingsPage() {
     if (upErr) { toast.error(upErr.message); setBusy(false); return; }
     const { data } = supabase.storage.from("store-assets").getPublicUrl(path);
     const url = data.publicUrl;
-    const patch: any = kind === "logo" ? { logo_url: url } : { banner_url: url };
+    const patch: any = kind === "logo" ? { logo_url: url } : kind === "banner" ? { banner_url: url } : { favicon_url: url };
     setForm({ ...form, ...patch });
     // Persist immediately so it survives even if the user forgets to click Save
     const { error: saveErr } = await supabase.from("stores").update(patch).eq("id", form.id);
     if (saveErr) toast.error(saveErr.message);
-    else { toast.success(`${kind === "logo" ? "Logo" : "Banner"} updated`); reload(); }
+    else { toast.success(`${kind === "logo" ? "Logo" : kind === "banner" ? "Banner" : "Favicon"} updated`); reload(); }
     setBusy(false);
   };
 
