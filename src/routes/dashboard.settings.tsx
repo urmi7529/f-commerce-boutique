@@ -209,6 +209,23 @@ function SettingsPage() {
           {uploadingLogo && <p className="mt-2 text-xs text-muted-foreground">Uploading…</p>}
           {form.logo_url && <img src={form.logo_url} alt="" className="mt-2 h-20 w-20 rounded-lg object-cover border border-border" />}
         </div>
+        <div>
+          <Label>Favicon (browser tab icon)</Label>
+          <p className="text-xs text-muted-foreground mb-2">Recommended size: <strong>64 × 64 px</strong> or <strong>128 × 128 px</strong> (square PNG/ICO)</p>
+          <Input type="file" accept="image/png,image/x-icon,image/vnd.microsoft.icon,image/svg+xml,image/jpeg" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0], "favicon")} disabled={uploadingFavicon} />
+          {uploadingFavicon && <p className="mt-2 text-xs text-muted-foreground">Uploading…</p>}
+          {form.favicon_url && (
+            <div className="mt-2 flex items-center gap-3">
+              <img src={form.favicon_url} alt="" className="h-10 w-10 rounded border border-border object-contain bg-white p-1" />
+              <Button type="button" variant="outline" size="sm"
+                onClick={async () => {
+                  setForm({ ...form, favicon_url: null });
+                  await supabase.from("stores").update({ favicon_url: null }).eq("id", form.id);
+                  reload(); toast.success("Favicon removed");
+                }}>Remove</Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Banner */}
